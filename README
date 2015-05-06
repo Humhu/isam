@@ -1,3 +1,7 @@
+Modified iSAM library for extrinsics calibration
+Humphrey Hu
+
+Based on the original:
 
 Incremental Smoothing and Mapping (iSAM) library
 Michael Kaess, Hordur Johannsson, David Rosen, John Leonard, 2012
