@@ -38,7 +38,7 @@ endif()
 option (USE_GUI "Compile with GUI (SDL library needed)" ${USE_GUI_TMP})
 endif()
 
-add_definitions(-Wall)
+add_definitions("-Wall -std=c++11")
 # note: -g automatic for Debug mode, -O3 -DNDEBUG automatic for Release
 
 set(isam_VERSION_MAJOR 1)

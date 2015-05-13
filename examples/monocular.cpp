@@ -11,6 +11,8 @@
 #include <isam/isam.h>
 #include <isam/slam_monocular.h>
 #include <isam/robust.h>
+#include <isam/SlamInterface.h>
+#include <isam/sclam_monocular.h>
 
 using namespace std;
 using namespace isam;
@@ -22,81 +24,102 @@ const double u0 = 240; // principal point in pixels
 const double v0 = 120;
 
 double robust_cost_function(double d) {
-  return cost_pseudo_huber(d, .5);
+	return cost_pseudo_huber(d, .5);
 }
 
 void simple_monocular() {
-
-  Vector2d pp(u0, v0);
-  MonocularCamera camera(f, pp);
-
-  Pose3d origin;
-  Point3d p0(5.,1.,2.);
-
-  Slam slam;
-
-  // first monocular camera
-  Pose3d_Node* pose0 = new Pose3d_Node();
-  slam.add_node(pose0);
-
-  // create a prior on the camera position
-  Noise noise6 = Information(100. * eye(6));
-  Pose3d_Factor* prior = new Pose3d_Factor(pose0, origin, noise6);
-  slam.add_factor(prior);
-
-  // second monocular camera
-  Pose3d_Node* pose1 = new Pose3d_Node();
-  slam.add_node(pose1);
-
-  // add odometry measurement
-  Pose3d delta(1.,0,0, 0,0,0); // move one meter forward (noise-free measurement...)
-  Pose3d_Pose3d_Factor* odo = new Pose3d_Pose3d_Factor(pose0, pose1, delta, noise6);
-  slam.add_factor(odo);
-
-  // add some monocular measurements
-  Point3d_Node* point = new Point3d_Node();
-  slam.add_node(point);
-  Noise noise2 = Information(eye(2));
-  // first monocular camera projection
-  MonocularMeasurement measurement0 = camera.project(origin, p0);
-  cout << "Projection in first camera:" << endl;
-  cout << measurement0 << endl;
-  measurement0.u += 0.5; // add some "noise"
-  measurement0.v -= 0.2;
-  Monocular_Factor* factor1 = new Monocular_Factor(pose0, point, &camera, measurement0, noise2);
-  slam.add_factor(factor1);
-  // second monocular camera projection
-  MonocularMeasurement measurement1 = camera.project(delta, p0);
-  measurement1.u -= 0.3; // add some "noise"
-  measurement1.v += 0.7;
-  Monocular_Factor* factor2 = new Monocular_Factor(pose1, point, &camera, measurement1, noise2);
-  slam.add_factor(factor2);
-
-  cout << "Before optimization:" << endl;
-  cout << setprecision(3) << setiosflags(ios::fixed);
-  cout << point->value() << endl;
-  cout << pose0->value() << endl;
-  cout << pose1->value() << endl;
-
-  // not needed here, but for more complex examples use Powell's dog leg and
-  // optionally a robust estimator (pseudo Huber) to deal with occasional outliers
-  Properties prop = slam.properties();
-  prop.method = DOG_LEG;
-  slam.set_properties(prop);
-//  slam.set_cost_function(robust_cost_function);
-
-  // optimize
-  slam.batch_optimization();
-
-  cout << "After optimization:" << endl;
-  cout << point->value() << endl;
-  cout << pose0->value() << endl;
-  cout << pose1->value() << endl;
+	
+	Vector2d pp(u0, v0);
+	MonocularCamera camera(f, pp);
+	
+	Pose3d origin;
+	Point3d p0(5.,1.,2.);
+	
+	Slam::Ptr slam = std::make_shared<Slam>();
+	SlamInterface slamInterface( slam );
+	
+	// first monocular camera
+	//   Pose3d_Node* pose0 = new Pose3d_Node();
+	//   slam.add_node(pose0);
+	Pose3d_Node::Ptr pose0 = std::make_shared<Pose3d_Node>();
+	slamInterface.add_node( pose0 );
+	
+	// create a prior on the camera position
+	Noise noise6 = Information(100. * eye(6));
+	//   Pose3d_Factor* prior = new Pose3d_Factor(pose0, origin, noise6);
+	//   slam.add_factor(prior);
+	Pose3d_Factor::Ptr prior = std::make_shared<Pose3d_Factor>( pose0.get(), origin, noise6 );
+	slamInterface.add_factor( prior );
+	
+	// second monocular camera
+	//   Pose3d_Node* pose1 = new Pose3d_Node();
+	//   slam.add_node(pose1);
+	Pose3d_Node::Ptr pose1 = std::make_shared<Pose3d_Node>();
+	slamInterface.add_node( pose1 );
+	
+	// add odometry measurement
+	Pose3d delta(1.,0,0, 0,0,0); // move one meter forward (noise-free measurement...)
+	//   Pose3d_Pose3d_Factor* odo = new Pose3d_Pose3d_Factor(pose0, pose1, delta, noise6);
+	//   slam.add_factor(odo);
+	Pose3d_Pose3d_Factor::Ptr odo = 
+	std::make_shared<Pose3d_Pose3d_Factor>( pose0.get(), pose1.get(), delta, noise6 );
+	slamInterface.add_factor( odo );
+	
+	// add some monocular measurements
+	//   Point3d_Node* point = new Point3d_Node();
+	//   slam.add_node(point);
+	Point3d_Node::Ptr point = std::make_shared<Point3d_Node>();
+	slamInterface.add_node( point );
+	
+	Noise noise2 = Information(eye(2));
+	// first monocular camera projection
+	MonocularMeasurement measurement0 = camera.project(origin, p0);
+	cout << "Projection in first camera:" << endl;
+	cout << measurement0 << endl;
+	measurement0.u += 0.5; // add some "noise"
+	measurement0.v -= 0.2;
+	
+// 	Monocular_Factor* factor1 = new Monocular_Factor(pose0, point, &camera, measurement0, noise2);
+// 	slam.add_factor(factor1);
+	// TODO Switch to camera smart pointer?
+	Monocular_Factor::Ptr factor1 = std::make_shared<Monocular_Factor>( pose0.get(), point.get(), &camera, measurement0, noise2 );
+	slamInterface.add_factor( factor1 );
+	
+	// second monocular camera projection
+	MonocularMeasurement measurement1 = camera.project(delta, p0);
+	measurement1.u -= 0.3; // add some "noise"
+	measurement1.v += 0.7;
+	
+// 	Monocular_Factor* factor2 = new Monocular_Factor(pose1, point, &camera, measurement1, noise2);
+// 	slam.add_factor(factor2);
+	Monocular_Factor::Ptr factor2 = std::make_shared<Monocular_Factor>( pose1.get(), point.get(), &camera, measurement1, noise2 );
+	slamInterface.add_factor( factor2 );
+	
+	cout << "Before optimization:" << endl;
+	cout << setprecision(3) << setiosflags(ios::fixed);
+	cout << point->value() << endl;
+	cout << pose0->value() << endl;
+	cout << pose1->value() << endl;
+	
+	// not needed here, but for more complex examples use Powell's dog leg and
+	// optionally a robust estimator (pseudo Huber) to deal with occasional outliers
+	Properties prop = slam->properties();
+	prop.method = DOG_LEG;
+	slam->set_properties(prop);
+	//  slam.set_cost_function(robust_cost_function);
+	
+	// optimize
+	slam->batch_optimization();
+	
+	cout << "After optimization:" << endl;
+	cout << point->value() << endl;
+	cout << pose0->value() << endl;
+	cout << pose1->value() << endl;
 }
 
 int main() {
-
-  simple_monocular();
-
-  return 0;
+	
+	simple_monocular();
+	
+	return 0;
 }

@@ -58,8 +58,8 @@ MatrixXd numericalDiff(Function& func) {
     Node* node = *it;
     int dim_n = node->dim();
     // for each dimension of the node...
+	VectorXd delta( dim_n );
     for (int j=0; j<dim_n; j++, col++) {
-      VectorXd delta(dim_n);
       delta.setZero();
       // remember original value
       VectorXd original = node->vector0();
@@ -67,6 +67,7 @@ MatrixXd numericalDiff(Function& func) {
       delta(j) = epsilon;
       node->self_exmap(delta);
       VectorXd y_plus = func.evaluate();
+	  // restore original
       node->update0(original);
 #ifdef SYMMETRIC
       // evaluate negative delta
