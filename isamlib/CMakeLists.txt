@@ -4,7 +4,7 @@ cmake_minimum_required(VERSION 2.6)
 file(GLOB SRCS RELATIVE "${PROJECT_SOURCE_DIR}/isamlib" "*.cpp")
 
 # isamlib
-add_library(isamlib ${SRCS})
+add_library(isamlib SHARED ${SRCS})
 set_property(TARGET isamlib PROPERTY OUTPUT_NAME isam)
 
 # simple way of finding CHOLMOD

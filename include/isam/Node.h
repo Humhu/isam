@@ -107,6 +107,7 @@ namespace isam {
 		
 	public:
 		
+		typedef T DataType;
 		typedef std::shared_ptr<NodeT> Ptr;
 		
 		NodeT() : Node(T::name(), T::dim) {

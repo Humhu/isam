@@ -200,6 +200,8 @@ namespace isam {
 	public:
 		EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 		
+		typedef T DataType;
+		
 		FactorT(const char* name, int dim, const Noise& noise, const T& measure) : Factor(name, dim, noise), _measure(measure) {}
 		
 		const T& measurement() const {return _measure;}

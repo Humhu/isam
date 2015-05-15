@@ -1,3 +1,5 @@
+#pragma once
+
 #include "Slam.h"
 
 #include <memory>
