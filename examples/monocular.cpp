@@ -30,7 +30,7 @@ double robust_cost_function(double d) {
 void simple_monocular() {
 	
 	Vector2d pp(u0, v0);
-	MonocularCamera camera(f, pp);
+	MonocularIntrinsics camera(f, pp);
 	
 	Pose3d origin;
 	Point3d p0(5.,1.,2.);

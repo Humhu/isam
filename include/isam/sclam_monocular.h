@@ -19,7 +19,7 @@ namespace isam
 		Point3d_Node* _point;
 		Point3dh_Node* _point_h;
 		Extrinsics3d_Node* _extrinsics;
-		MonocularCamera* _camera;
+		MonocularIntrinsics* _camera;
 		
 	public:
 		
@@ -27,11 +27,11 @@ namespace isam
 		
 		// constructor for projective geometry
 		Monocular_Extrinsics_Factor( Pose3d_Node* pose, Point3dh_Node* point, 
-									 Extrinsics3d_Node* extrinsics, MonocularCamera* camera,
+									 Extrinsics3d_Node* extrinsics, MonocularIntrinsics* camera,
 									 const MonocularMeasurement& measure, const isam::Noise& noise )
 		: FactorT<MonocularMeasurement>("Monocular_Extrinsics_Factor", 3, noise, measure),
 		_pose(pose), _point(NULL), _point_h(point), _extrinsics(extrinsics), _camera(camera) {
-			// MonocularCamera could also be a node later (either with 0 variables,
+			// MonocularIntrinsics could also be a node later (either with 0 variables,
 			// or with calibration as variables)
 			_nodes.resize(3);
 			_nodes[0] = pose;
@@ -41,7 +41,7 @@ namespace isam
 		
 		// constructor for Euclidean geometry - WARNING: only use for points at short range
 		Monocular_Extrinsics_Factor( Pose3d_Node* pose, Point3d_Node* point, 
-									 Extrinsics3d_Node* extrinsics, MonocularCamera* camera,
+									 Extrinsics3d_Node* extrinsics, MonocularIntrinsics* camera,
 									 const MonocularMeasurement& measure, const isam::Noise& noise)
 		: FactorT<MonocularMeasurement>("Monocular_Extrinsics_Factor", 3, noise, measure),
 		_pose(pose), _point(point), _point_h(NULL), _extrinsics(extrinsics), _camera(camera) {
@@ -52,8 +52,11 @@ namespace isam
 		}
 		
 		void initialize() {
-			require( _pose->initialized() && _extrinsics->initialized(), 
-					 "Monocular_Extrinsics_Factor requires pose and extrinsics to be initialized" );
+			require( _pose->initialized(),
+					 "Monocular_Extrinsics_Factor requires pose to be initialized" );
+			require( _extrinsics->initialized(),
+					 "Monocular_Extrinsics_Factor requires extrinsics to be initialized" );
+			
 			bool initialized = (_point_h!=NULL) ? _point_h->initialized() : _point->initialized();
 			if (!initialized) {
 				Pose3d pose = _pose->value();
