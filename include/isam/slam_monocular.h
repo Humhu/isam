@@ -36,6 +36,7 @@
 #include "Factor.h"
 #include "Pose3d.h"
 #include "Point3dh.h"
+#include "slam3d.h"
 
 namespace isam {
 	
