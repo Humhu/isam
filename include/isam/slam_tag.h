@@ -18,11 +18,17 @@ namespace isam {
 	class TagIntrinsics {
 	public:
 		
+		typedef std::shared_ptr<TagIntrinsics> Ptr;
+		
 		double tagSize; // Dimension of one side
 		double halfSize;
 		
-		TagIntrinsics( double ts (
-			: tagSize( ts ), halfSize( tagSize/2.0 );
+		TagIntrinsics()
+			: tagSize( 1.0 ), halfSize( 0.5 )
+		{}
+		
+		TagIntrinsics( double ts )
+			: tagSize( ts ), halfSize( tagSize/2.0 )
 		{}
 		
 	};
@@ -68,6 +74,8 @@ namespace isam {
 
 	public:
 
+		typedef std::shared_ptr<Tag_Extrinsics_Factor> Ptr;
+
 		/**
 		* Constructor.
 		* @param pose The pose of the robot observing the tag in the world frame.
@@ -80,7 +88,7 @@ namespace isam {
 		*/
 		Tag_Extrinsics_Factor( Pose3d_Node* pose, 
 							   Pose3d_Node* tag, TagIntrinsics* tagIntrinsics,
-							   Extrinsics3d_Node* cameraExtrinsics, MonocularIntrinsics* camera, 
+							   Pose3d_Node* cameraExtrinsics, MonocularIntrinsics* camera, 
 							   const TagCorners& measure, const Noise& noise ) 
 			: FactorT<TagCorners>("Tag_Extrinsics_Factor", 8, noise, measure), 
 				_pose( pose ), _tag( tag ), _tagIntrinsics( tagIntrinsics ),
@@ -89,11 +97,11 @@ namespace isam {
 			_nodes.resize(3);
 			_nodes[0] = _pose;
 			_nodes[1] = _tag;
-			_nodes[2] = _extrinsics;
+ 			_nodes[2] = _extrinsics;
 
 			_rot.setZero();
-			_rot(0, 1) = 1;
-			_rot(1, 2) = 1;
+			_rot(0, 1) = -1;
+			_rot(1, 2) = -1;
 			_rot(2, 0) = 1;
 			_rot(3, 3) = 1;
 		}
@@ -104,30 +112,47 @@ namespace isam {
 			require(_pose->initialized(),
 				"Tag_Extrinsics_Factor requires pose to be initialized");
 			require( _extrinsics->initialized(),
-				"Tag_Extrinsics_Factor requires extrinsics to be initialized");
+				"Tag_Extrinsics_Factor requires camera extrinsics to be initialized");
+			require( _tagIntrinsics != nullptr,
+				"Tag_Extrinsics_Factor requires tag intrinsics to be initialized");
+			require( _camera != nullptr,
+				"Tag_Extrinsics_Factor requires camera intrinsics to be initialized");
 		}
 
 		inline Point2d proj( const Eigen::Matrix<double, 3, 4>& P, double u, double v) const {
-			Eigen::Vector4d corner(u, v, 0., 1.);
+			Eigen::Vector4d corner(0.0, u, v, 1.);
 			Eigen::Vector3d x;
 			x = P * corner;
 			return Point2d(x(0) / x(2), x(1) / x(2));
 		}
-
+		
 		Eigen::VectorXd basic_error(Selector s = ESTIMATE) const {
-			const Pose3d& cam = _pose->value(s);
+			const Pose3d& bot = _pose->value(s);
 			const Pose3d& tag = _tag->value(s);
 			const Pose3d& ext = _extrinsics->value(s);
-			Eigen::Matrix<double, 3, 4> P = _camera.K() * _rot
-				* ext.oplus( tag.ominus( cam ) ).wTo();
+			Eigen::Matrix<double, 3, 4> P = _camera->K() * _rot
+				* ext.oTw() * bot.oTw() * tag.wTo() ;
 
-			double h = _tagIntrinsics.halfSize;
+			double h = _tagIntrinsics->halfSize;
 			TagCorners predicted(proj(P, -h, -h), proj(P, h, -h), proj(P, h, h),
 				proj(P, -h, h));
 			Eigen::VectorXd err = predicted.vector() - _measure.vector();
 			return err;
 		}
 
+		TagCorners predict(Selector s = ESTIMATE) const {
+			const Pose3d& bot = _pose->value(s);
+			const Pose3d& tag = _tag->value(s);
+			const Pose3d& ext = _extrinsics->value(s);
+			Eigen::Matrix<double, 3, 4> P = _camera->K() * _rot
+				* ext.oTw() * bot.oTw() * tag.wTo() ;
+				
+			double h = _tagIntrinsics->halfSize;
+			TagCorners predicted(proj(P, -h, -h), proj(P, h, -h), proj(P, h, h),
+				proj(P, -h, h));
+			
+			return predicted;
+		}
 	};
 
 }

@@ -72,6 +72,8 @@ namespace isam {
 		
 	public:
 		
+		typedef std::shared_ptr<MonocularIntrinsics> Ptr;
+		
 		MonocularIntrinsics() 
 			: _fx(1), _fy(1), _pp(Eigen::Vector2d(0.5,0.5)) 
 		{}
@@ -87,8 +89,8 @@ namespace isam {
 		
 		Eigen::Matrix<double, 3, 4> K() const {
 			Eigen::Matrix<double, 3, 4> K;
-			K.row(0) << fx, 0, px, 0;
-			K.row(1) << 0, fy, py, 0;
+			K.row(0) << _fx, 0, _pp(0), 0;
+			K.row(1) << 0, _fy, _pp(1), 0;
 			K.row(2) << 0, 0, 1, 0;
 			return K;
 		}
@@ -113,11 +115,11 @@ namespace isam {
 							 double z = 5.) const {
 			double lx = (measure.u-_pp(0));
 			double ly = (measure.v-_pp(1));
-			double lz = _f;
+			double lz = (_fx+_fy)*0.5; //HACK Average focal length...
 			if (z<=0.0) {
 				std::cout << "Warning: MonocularIntrinsics.backproject called with non-positive z\n";
 			}
-			double lw = _f/z;
+			double lw = (_fx+_fy)*0.5/z;
 			Point3dh X(lz, lx, ly, lw);
 			
 			return pose.transform_from(X);
