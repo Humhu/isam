@@ -73,6 +73,11 @@ namespace isam {
 		
 	public:
 		
+		static const int dim = 4;
+		static const char* name() {
+			return "MonocularIntrinsics";
+		}
+		
 		typedef std::shared_ptr<MonocularIntrinsics> Ptr;
 		
 		MonocularIntrinsics() 
@@ -125,8 +130,48 @@ namespace isam {
 			
 			return pose.transform_from(X);
 		}
-							 
+		
+		MonocularIntrinsics exmap( const Eigen::VectorXd& delta )
+		{
+			Eigen::VectorXd current = vector();
+			current += delta;
+			Eigen::Vector2d pp;
+			pp << current(2), current(3);
+			return MonocularIntrinsics( current(0), current(1), pp );
+		}
+	
+		void set( const Eigen::VectorXd& v )
+		{
+			_fx = v(0);
+			_fy = v(1);
+			_pp(0) = v(2);
+			_pp(1) = v(3);
+		}
+		
+		Eigen::VectorXb is_angle() const {
+			Eigen::VectorXb isang( dim );
+			isang << false, false, false, false;
+			return isang;
+		}
+	
+		Eigen::VectorXd vector() const
+		{
+			Eigen::VectorXd vec(4);
+			vec << _fx, _fy, _pp(0), _pp(1);
+			return vec;
+		}
+		
+		void write( std::ostream& out ) const
+		{
+			out << "(fx: " << _fx << " fy: " << _fy << "pp: [" << _pp(0) << ", " << _pp(1) << "])";
+		}
 	};
+	
+	std::ostream& operator<<( std::ostream& out, const MonocularIntrinsics& intrinsics )
+	{
+		intrinsics.write( out );
+		return out;
+	}
 	
 	/*! \brief Monocular observation of a 3D point. Projective or Euclidean 
 	 * geometry depending on constructor used. */
