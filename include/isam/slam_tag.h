@@ -11,6 +11,7 @@
 
 #include "isam.h"
 #include "slam_monocular.h"
+#include "sclam_monocular.h"
 
 namespace isam {
 	
