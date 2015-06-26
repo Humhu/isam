@@ -73,7 +73,7 @@ namespace isam {
 		
 	public:
 		
-		static const int dim = 4;
+		static const int dim = 2;
 		static const char* name() {
 			return "MonocularIntrinsics";
 		}
