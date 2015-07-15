@@ -116,10 +116,23 @@ public:
     const double q1 = q.x();
     const double q2 = q.y();
     const double q3 = q.z();
-//    roll = atan2(2*(q0*q1+q2*q3), 1-2*(q1*q1+q2*q2));
-    roll = atan2(2.0*(q0*q1+q2*q3), q0*q0-q1*q1-q2*q2+q3*q3); // numerically more stable (thanks to Dehann for pointing this out)
-    pitch = asin(2.0*(q0*q2-q3*q1));
-//    yaw = atan2(2*(q0*q3+q1*q2), 1-2*(q2*q2+q3*q3));
+    
+	// NOTE asin fails when t1 is close to 1 due to normalization rounding errors, so we have to catch
+    double t1 = 2.0*(q0*q2-q3*q1);
+	if( t1 > 1.0 ) 
+	{ 
+		pitch = M_PI/2;
+	}
+	else if( t1 < -1.0 )
+	{
+		pitch = -M_PI/2;
+	}
+	else
+	{
+		pitch = asin(2.0*(q0*q2-q3*q1));
+	}
+	
+    roll = atan2(2.0*(q0*q1+q2*q3), q0*q0-q1*q1-q2*q2+q3*q3); // numerically more stable (thanks to Dehann for pointing this out)	
     yaw = atan2(2.0*(q0*q3+q1*q2), q0*q0+q1*q1-q2*q2-q3*q3);
   }
 
@@ -178,7 +191,8 @@ public:
     _wRo_cached(true), _wRo(Eigen::Matrix<double, 3, 3>::Identity()),
     _ypr_cached(true), _yaw(0.), _pitch(0.), _roll(0.) {}
 
-  Rot3d(const Eigen::Quaterniond& quat) : _quat(quat), _wRo_cached(false), _ypr_cached(false) {}
+  Rot3d(const Eigen::Quaterniond& quat) : _quat(quat), _wRo_cached(false), _ypr_cached(false) 
+  { _quat.normalize(); }
 
   Rot3d(double yaw, double pitch, double roll) {
     set(yaw, pitch, roll);

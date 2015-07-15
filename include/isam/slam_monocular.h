@@ -68,11 +68,13 @@ namespace isam {
 	
 	/*! \brief Represents the projection intrinsics of a monocular camera. */
 	class MonocularIntrinsics {
+
 		double _fx, _fy;
 		Eigen::Vector2d _pp;
 		
 	public:
-		
+		EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+
 		static const int dim = 2;
 		static const char* name() {
 			return "MonocularIntrinsics";
