@@ -1,4 +1,24 @@
-// iSAM types for monocular camera extrinsics calibration
+/**
+ * @file slam_monocular.h
+ * @brief Provides nodes and factors for monocular vision applications.
+ * @author Humphrey Hu
+ *
+ * This file is part of iSAM.
+ *
+ * iSAM is free software; you can redistribute it and/or modify it under
+ * the terms of the GNU Lesser General Public License as published by the
+ * Free Software Foundation; either version 2.1 of the License, or (at
+ * your option) any later version.
+ *
+ * iSAM is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public
+ * License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with iSAM.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
 
 #pragma once
 
@@ -8,185 +28,115 @@
 #include "Point3d.h"
 #include "slam_monocular.h"
 
+/*! \brief SCLAM_Monocular
+ * Contains nodes and factors for optimizing single camera intrinsics and relative poses with
+ * point features. */
+
 namespace isam
 {
+	/*! \brief Represents optimizable monocular camera intrinsics. */
+	typedef NodeT<MonocularIntrinsics> MonocularIntrinsics_Node;
 	
-	typedef NodeT<MonocularIntrinsics> Intrinsics_Node;
-	typedef NodeT<Pose3d> Extrinsics3d_Node;
-	
-	class Intrinsics_Factor : public FactorT<MonocularIntrinsics> {
-		Intrinsics_Node* _intrinsics;
+	/*! \brief Represents a prior on monocular camera intrinsics. */
+	class Intrinsics_Factor : public FactorT<MonocularIntrinsics> 
+	{
+		MonocularIntrinsics_Node* _intrinsics;
 		
 	public:
 		
 		typedef std::shared_ptr<Intrinsics_Factor> Ptr;
 		
-		Intrinsics_Factor( Intrinsics_Node* intrinsics, const MonocularIntrinsics& prior, const Noise& noise )
-		: FactorT<MonocularIntrinsics>("Intrinsics_Factor", 4, noise, prior), _intrinsics(intrinsics) {
+		Intrinsics_Factor( MonocularIntrinsics_Node* intrinsics, const MonocularIntrinsics& prior, 
+						   const Noise& noise )
+		: FactorT<MonocularIntrinsics>("Intrinsics_Factor", 4, noise, prior), _intrinsics(intrinsics) 
+		{
 			_nodes.resize(1);
 			_nodes[0] = intrinsics;
 		}
 		
-		void initialize() {
-			if( !_intrinsics->initialized()) {
+		void initialize() 
+		{
+			if( !_intrinsics->initialized()) 
+			{
 				MonocularIntrinsics predict = _measure;
 				_intrinsics->init( predict );
 			}
 		}
 		
-		Eigen::VectorXd basic_error( Selector s = ESTIMATE ) const {
+		Eigen::VectorXd basic_error( Selector s = ESTIMATE ) const 
+		{
 			Eigen::VectorXd err = _nodes[0]->vector(s) - _measure.vector();
 			return err;
 		}
 	};
 	
-	class Monocular_Extrinsics_Factor : public FactorT<MonocularMeasurement>
+	/*! \brief General monocular camera calibration factor. Can handle hand-eye extrinsics calibrations
+	 * as well as feature-structure calibration. */
+	class Monocular_Calibration_Factor : public Monocular_Factor_Base
 	{
-		Pose3d_Node* _pose;
-		Point3d_Node* _point;
-		Point3dh_Node* _point_h;
-		Extrinsics3d_Node* _extrinsics;
-		MonocularIntrinsics* _camera;
+		Pose3d_Node* _cam_ref;			// Pose of the camera reference frame
+		Pose3d_Node* _point_ref;		// Pose of the point reference frame
+		Pose3d_Node* _cam_ext;			// Relative pose of the camera
+		Point3d_Node* _point_ext;		// Position of the point feature
+		MonocularIntrinsics_Node* _cam_int;	// Intrinsics of the camera
 		
 	public:
 		
-		typedef std::shared_ptr<Monocular_Extrinsics_Factor> Ptr;
+		struct Properties
+		{
+			bool optimizePose;			// Camera reference pose
+			bool optimizeCamExtrinsics;	// Camera extrinsics
+			bool optimizeCamIntrinsics;	// Camera intrinsics
+			bool optimizeLocation;		// Feature reference frame pose
+			bool optimizeStructure;		// Feature relative position
+			
+			Properties() : optimizePose( true ), optimizeCamExtrinsics( true ), optimizeCamIntrinsics( true ), 
+				optimizeLocation( true ), optimizeStructure( true ) {}
+		};
 		
-		// constructor for projective geometry
-		Monocular_Extrinsics_Factor( Pose3d_Node* pose, Point3dh_Node* point, 
-									 Extrinsics3d_Node* extrinsics, MonocularIntrinsics* camera,
-									 const MonocularMeasurement& measure, const isam::Noise& noise )
-		: FactorT<MonocularMeasurement>("Monocular_Extrinsics_Factor", 3, noise, measure),
-		_pose(pose), _point(NULL), _point_h(point), _extrinsics(extrinsics), _camera(camera) {
-			// MonocularIntrinsics could also be a node later (either with 0 variables,
-			// or with calibration as variables)
-			_nodes.resize(3);
-			_nodes[0] = pose;
-			_nodes[1] = point;
-			_nodes[2] = extrinsics;
-		}
+		typedef std::shared_ptr<Monocular_Calibration_Factor> Ptr;
 		
-		// constructor for Euclidean geometry - WARNING: only use for points at short range
-		Monocular_Extrinsics_Factor( Pose3d_Node* pose, Point3d_Node* point, 
-									 Extrinsics3d_Node* extrinsics, MonocularIntrinsics* camera,
-									 const MonocularMeasurement& measure, const isam::Noise& noise)
-		: FactorT<MonocularMeasurement>("Monocular_Extrinsics_Factor", 3, noise, measure),
-		_pose(pose), _point(point), _point_h(NULL), _extrinsics(extrinsics), _camera(camera) {
-			_nodes.resize(2);
-			_nodes[0] = pose;
-			_nodes[1] = point;
-			_nodes[2] = extrinsics;
+		Monocular_Calibration_Factor( Pose3d_Node* cam_ref, Pose3d_Node* point_ref,
+									 Pose3d_Node* cam_ext, Point3d_Node* point_ext, 
+									 MonocularIntrinsics_Node* cam_int,
+									 const MonocularMeasurement& measure, const isam::Noise& noise,
+									 Properties prop = Properties() )
+		: Monocular_Factor_Base("Monocular_Calibration_Factor", noise, measure),
+		_cam_ref( cam_ref ), _point_ref( point_ref ), _cam_ext( cam_ext ), _point_ext( point_ext ),
+		_cam_int( cam_int )
+		{
+			if( prop.optimizePose ) 			{ _nodes.push_back( cam_ref ); }
+			if( prop.optimizeCamExtrinsics ) 	{ _nodes.push_back( cam_ext ); }
+			if( prop.optimizeCamIntrinsics ) 	{ _nodes.push_back( cam_int ); }
+			if( prop.optimizeLocation ) 		{ _nodes.push_back( point_ref ); }
+			if( prop.optimizeStructure ) 		{ _nodes.push_back( point_ext ); }
+			if( _nodes.size() == 0 )
+			{
+				throw std::runtime_error( "Monocular_Calibration_Factor created with no optimization variables." );
+			}
 		}
 		
 		void initialize() {
-			require( _pose->initialized(),
-					 "Monocular_Extrinsics_Factor requires pose to be initialized" );
-			require( _extrinsics->initialized(),
-					 "Monocular_Extrinsics_Factor requires extrinsics to be initialized" );
+			require( _cam_ref->initialized() && _point_ref->initialized() && _cam_ext->initialized() &&
+					_point_ext->initialized() && _cam_int->initialized(),
+					 "Monocular_Calibration_Factor requires all nodes to be initialized" );
+		}
+		
+		virtual Eigen::Matrix<double, 3, 4> projectionMatrix(Selector s = ESTIMATE) const 
+		{
+			const Pose3d& cref = _cam_ref->value(s);
+			const Pose3d& pref = _point_ref->value(s);
+			const Pose3d& cext = _cam_ext->value(s);
 			
-			bool initialized = (_point_h!=NULL) ? _point_h->initialized() : _point->initialized();
-			if (!initialized) {
-				Pose3d pose = _pose->value();
-				Pose3d cameraPose = pose.oplus( _extrinsics->value() );
-				Point3dh predict = _camera->backproject( cameraPose, _measure );
-				// normalize homogeneous vector
-				predict = Point3dh(predict.vector()).normalize();
-				if (_point_h!=NULL) {
-					_point_h->init(predict);
-				} else {
-					_point->init(predict.to_point3d());
-				}
-			}
+			Eigen::Matrix<double, 3, 4> P = _cam_int->value(s).K() 
+				* cext.oTw() * cref.oTw() * pref.wTo();
+			return P;
 		}
 		
-		Eigen::VectorXd basic_error(Selector s = ESTIMATE) const {
-			Point3dh point = (_point_h!=NULL) ? _point_h->value(s) : _point->value(s);
-			Pose3d pose = _pose->value(s);
-			Pose3d cameraPose = pose.oplus( _extrinsics->value(s) );
-			MonocularMeasurement predicted = _camera->project(cameraPose, point);
-			if (predicted.valid == true) {
-				return (predicted.vector() - _measure.vector());
-			} else {
-				// effectively disables points behind the camera
-				return Eigen::Vector2d::Zero();
-			}
-		}
-	};
-	
-	class Monocular_Intrinsics_Extrinsics_Factor : public FactorT<MonocularMeasurement>
-	{
-		Pose3d_Node* _pose;
-		Point3d_Node* _point;
-		Point3dh_Node* _point_h;
-		Extrinsics3d_Node* _extrinsics;
-		Intrinsics_Node* _intrinsics;
-		
-	public:
-		
-		typedef std::shared_ptr<Monocular_Intrinsics_Extrinsics_Factor> Ptr;
-		
-		// constructor for projective geometry
-		Monocular_Intrinsics_Extrinsics_Factor( Pose3d_Node* pose, Point3dh_Node* point, 
-									 Extrinsics3d_Node* extrinsics, Intrinsics_Node* intrinsics,
-									 const MonocularMeasurement& measure, const isam::Noise& noise )
-		: FactorT<MonocularMeasurement>("Monocular_Intrinsics_Extrinsics_Factor", 3, noise, measure),
-		_pose(pose), _point(NULL), _point_h(point), _extrinsics(extrinsics), _intrinsics(intrinsics) {
-			// MonocularIntrinsics could also be a node later (either with 0 variables,
-			// or with calibration as variables)
-			_nodes.resize(4);
-			_nodes[0] = pose;
-			_nodes[1] = point;
-			_nodes[2] = extrinsics;
-			_nodes[3] = intrinsics;
-		}
-		
-		// constructor for Euclidean geometry - WARNING: only use for points at short range
-		Monocular_Intrinsics_Extrinsics_Factor( Pose3d_Node* pose, Point3d_Node* point, 
-									 Extrinsics3d_Node* extrinsics, Intrinsics_Node* intrinsics,
-									 const MonocularMeasurement& measure, const isam::Noise& noise)
-		: FactorT<MonocularMeasurement>("Monocular_Intrinsics_Extrinsics_Factor", 3, noise, measure),
-		_pose(pose), _point(point), _point_h(NULL), _extrinsics(extrinsics), _intrinsics(intrinsics) {
-			_nodes.resize(4);
-			_nodes[0] = pose;
-			_nodes[1] = point;
-			_nodes[2] = extrinsics;
-			_nodes[3] = intrinsics;
-		}
-		
-		void initialize() {
-			require( _pose->initialized(),
-					 "Monocular_Intrinsics_Extrinsics_Factor requires pose to be initialized" );
-			require( _extrinsics->initialized(),
-					 "Monocular_Intrinsics_Extrinsics_Factor requires extrinsics to be initialized" );
-			require( _intrinsics->initialized(),
-					 "Monocular_Intrinsics_Extrinsics_Factor requires intrinsics to be initialized" );
-			
-			bool initialized = (_point_h!=NULL) ? _point_h->initialized() : _point->initialized();
-			if (!initialized) {
-				Pose3d pose = _pose->value();
-				Pose3d cameraPose = pose.oplus( _extrinsics->value() );
-				Point3dh predict = _intrinsics->value().backproject( cameraPose, _measure );
-				// normalize homogeneous vector
-				predict = Point3dh(predict.vector()).normalize();
-				if (_point_h!=NULL) {
-					_point_h->init(predict);
-				} else {
-					_point->init(predict.to_point3d());
-				}
-			}
-		}
-		
-		Eigen::VectorXd basic_error(Selector s = ESTIMATE) const {
-			Point3dh point = (_point_h!=NULL) ? _point_h->value(s) : _point->value(s);
-			Pose3d pose = _pose->value(s);
-			Pose3d cameraPose = pose.oplus( _extrinsics->value(s) );
-			MonocularMeasurement predicted = _intrinsics->value().project(cameraPose, point);
-			if (predicted.valid == true) {
-				return (predicted.vector() - _measure.vector());
-			} else {
-				// effectively disables points behind the camera
-				return Eigen::Vector2d::Zero();
-			}
+		Eigen::VectorXd basic_error(Selector s = ESTIMATE) const 
+		{
+			Point3d point = _point_ext->value( s );
+			return image_error( point, s );
 		}
 	};
 }
