@@ -162,14 +162,15 @@ namespace isam {
 			Eigen::Matrix<double, 3, 4> P = projectionMatrix( s );
 				
 			double h = tagSize( s )/2.0;
-			TagCorners predicted(proj(P, -h, -h), proj(P, h, -h), proj(P, h, h),
-				proj(P, -h, h));
+			TagCorners predicted(project(P, -h, -h), project(P, h, -h), project(P, h, h),
+				project(P, -h, h));
 			
 			return predicted;
 		}
 		
-		virtual Point2d proj( const Eigen::Matrix<double, 3, 4>& P, double u, double v) const {
-			Eigen::Vector4d corner(0.0, u, v, 1.);
+		// NOTE x-forward convention here for camera
+		virtual Point2d project( const Eigen::Matrix<double, 3, 4>& P, double u, double v) const {
+			Eigen::Vector4d corner(0.0, u, v, 1.0);
 			Eigen::Vector3d x;
 			x = P * corner;
 			return Point2d(x(0) / x(2), x(1) / x(2));
@@ -180,312 +181,65 @@ namespace isam {
 		virtual double tagSize(Selector s = ESTIMATE) const = 0;
 	};
 	
-	/*! \brief Factor to estimate camera pose, tag pose. */
-	class Tag_Factor : public Tag_Factor_Base {
-		Pose3d_Node* _pose;
-		Pose3d_Node* _tag;
-		TagIntrinsics* _tagIntrinsics;
-		MonocularIntrinsics* _camera;
-
-	public:
-
-		typedef std::shared_ptr<Tag_Factor> Ptr;
-		
-		/**
-		* Constructor.
-		* @param pose The pose of the camera observing the tag in the world frame.
-		* @param tag The pose of the tag in the world frame.
-		* @param tagIntrinsics The intrinsics of the tag being observed.
-		* @param camera The param struct of the observing camera.
-		* @param measure The measurements of the corners of the tag
-		* @param noise The 8x8 noise matrix.
-		*/
-		Tag_Factor( Pose3d_Node* pose, Pose3d_Node* tag, TagIntrinsics* tagIntrinsics,
-					MonocularIntrinsics* camera, const TagCorners& measure, const Noise& noise ) 
-			: Tag_Factor_Base( "Tag_Factor", 8, noise, measure ), 
-			_pose( pose ), _tag( tag ), _tagIntrinsics( tagIntrinsics ), _camera( camera )
-		{
-			_nodes.resize(2);
-			_nodes[0] = _pose;
-			_nodes[1] = _tag;
-		}
-
-		void initialize() {
-			require(_tag->initialized(),
-				"Tag_Factor requires tag to be initialized");
-			require(_pose->initialized(),
-				"Tag_Factor requires pose to be initialized");
-			require( _tagIntrinsics != nullptr,
-				"Tag_Factor requires tag intrinsics to be initialized");
-		}
-		
-		virtual Eigen::Matrix<double, 3, 4> projectionMatrix(Selector s = ESTIMATE) const {
-			const Pose3d& cam = _pose->value(s);
-			const Pose3d& tag = _tag->value(s);
-			Eigen::Matrix<double, 3, 4> P = _camera->K() * _rot
-				* cam.oTw() * tag.wTo() ;
-			return P;
-		}
-		
-		virtual double tagSize(Selector s = ESTIMATE) const {
-			return _tagIntrinsics->tagSize;
-		}
-
-	};
-	
-	/*! \brief Factor to estimate robot pose, tag pose, and camera extrinsics. */
-	class Tag_Extrinsics_Factor: public Tag_Factor_Base {
-		Pose3d_Node* _pose;
-		Pose3d_Node* _tag;
-		TagIntrinsics* _tagIntrinsics;
-		Pose3d_Node* _extrinsics;
-		MonocularIntrinsics* _camera;
-
-	public:
-
-		typedef std::shared_ptr<Tag_Extrinsics_Factor> Ptr;
-
-		/**
-		* Constructor.
-		* @param pose The pose of the robot observing the tag in the world frame.
-		* @param tag The pose of the tag in the world frame.
-		* @param tagIntrinsics The intrinsics of the tag being observed.
-		* @param cameraExtrinsics The pose of the camera observing the tag in the robot frame.
-		* @param camera The param struct of the observing camera.
-		* @param measure The measurements of the corners of the tag
-		* @param noise The 8x8 noise matrix.
-		*/
-		Tag_Extrinsics_Factor( Pose3d_Node* pose, 
-							   Pose3d_Node* tag, TagIntrinsics* tagIntrinsics,
-							   Pose3d_Node* cameraExtrinsics, MonocularIntrinsics* camera, 
-							   const TagCorners& measure, const Noise& noise ) 
-			: Tag_Factor_Base("Tag_Extrinsics_Factor", 8, noise, measure), 
-				_pose( pose ), _tag( tag ), _tagIntrinsics( tagIntrinsics ),
-				_extrinsics( cameraExtrinsics ), _camera( camera )
-		{
-			_nodes.resize(3);
-			_nodes[0] = _pose;
-			_nodes[1] = _tag;
- 			_nodes[2] = _extrinsics;
-		}
-
-		void initialize() {
-			require(_tag->initialized(),
-				"Tag_Extrinsics_Factor requires tag to be initialized");
-			require(_pose->initialized(),
-				"Tag_Extrinsics_Factor requires pose to be initialized");
-			require( _extrinsics->initialized(),
-				"Tag_Extrinsics_Factor requires camera extrinsics to be initialized");
-			require( _tagIntrinsics != nullptr,
-				"Tag_Extrinsics_Factor requires tag intrinsics to be initialized");
-			require( _camera != nullptr,
-				"Tag_Extrinsics_Factor requires camera intrinsics to be initialized");
-		}
-
-		virtual Eigen::Matrix<double, 3, 4> projectionMatrix(Selector s = ESTIMATE) const {
-			const Pose3d& bot = _pose->value(s);
-			const Pose3d& tag = _tag->value(s);
-			const Pose3d& ext = _extrinsics->value(s);
-			Eigen::Matrix<double, 3, 4> P = _camera->K() * _rot
-				* ext.oTw() * bot.oTw() * tag.wTo() ;
-			return P;
-		}
-				
-		virtual double tagSize(Selector s = ESTIMATE) const {
-			return _tagIntrinsics->tagSize;
-		}
-	};
-	
-	/*! \brief Factor to estimate robot pose, tag pose, and camera intrinsics/extrinsics. */
-	class Tag_Intrinsics_Extrinsics_Factor: public Tag_Factor_Base {
-		Pose3d_Node* _pose;
-		Pose3d_Node* _tag;
-		TagIntrinsics* _tagIntrinsics;
-		Pose3d_Node* _extrinsics;
-		Intrinsics_Node* _cameraIntrinsics;
-
-	public:
-
-		typedef std::shared_ptr<Tag_Intrinsics_Extrinsics_Factor> Ptr;
-
-		/**
-		* Constructor.
-		* @param pose The pose of the robot observing the tag in the world frame.
-		* @param tag The pose of the tag in the world frame.
-		* @param tagIntrinsics The intrinsics of the tag being observed.
-		* @param cameraExtrinsics The pose of the camera observing the tag in the robot frame.
-		* @param camera The param struct of the observing camera.
-		* @param measure The measurements of the corners of the tag
-		* @param noise The 8x8 noise matrix.
-		*/
-		Tag_Intrinsics_Extrinsics_Factor( Pose3d_Node* pose, 
-							   Pose3d_Node* tag, TagIntrinsics* tagIntrinsics,
-							   Pose3d_Node* cameraExtrinsics, Intrinsics_Node* cameraIntrinsics, 
-							   const TagCorners& measure, const Noise& noise ) 
-			: Tag_Factor_Base("Tag_Intrinsics_Extrinsics_Factor", 8, noise, measure), 
-				_pose( pose ), _tag( tag ), _tagIntrinsics( tagIntrinsics ),
-				_extrinsics( cameraExtrinsics ), _cameraIntrinsics( cameraIntrinsics )
-		{
-			_nodes.resize(4);
-			_nodes[0] = _pose;
-			_nodes[1] = _tag;
- 			_nodes[2] = _extrinsics;
-			_nodes[3] = _cameraIntrinsics;
-		}
-
-		void initialize() {
-			require(_tag->initialized(),
-				"Tag_Intrinsics_Extrinsics_Factor requires tag to be initialized");
-			require(_pose->initialized(),
-				"Tag_Intrinsics_Extrinsics_Factor requires pose to be initialized");
-			require( _extrinsics->initialized(),
-				"Tag_Intrinsics_Extrinsics_Factor requires camera extrinsics to be initialized");
-			require( _tagIntrinsics != nullptr,
-				"Tag_Intrinsics_Extrinsics_Factor requires tag intrinsics to be initialized");
-			require( _cameraIntrinsics ->initialized(),
-				"Tag_Intrinsics_Extrinsics_Factor requires camera intrinsics to be initialized");
-		}
-
-		virtual Eigen::Matrix<double,3,4> projectionMatrix(Selector s = ESTIMATE) const {
-			const Pose3d& bot = _pose->value(s);
-			const Pose3d& tag = _tag->value(s);
-			const Pose3d& ext = _extrinsics->value(s);
-			Eigen::Matrix<double, 3, 4> P = _cameraIntrinsics->value(s).K() * _rot
-				* ext.oTw() * bot.oTw() * tag.wTo() ;
-			return P;
-		}
-			
-		virtual double tagSize(Selector s = ESTIMATE) const {
-			return _tagIntrinsics->tagSize;
-		}
-	};
-	
-	/*! \brief Factor to estimate robot pose, tag intrinsics/extrinsics, and camera extrinsics. */
-	class Tag_Size_Factor: public Tag_Factor_Base {
-		Pose3d_Node* _pose;
-		Pose3d_Node* _tag;
-		Tag_Node* _tagIntrinsics;
-		Pose3d_Node* _extrinsics;
-		MonocularIntrinsics* _cameraIntrinsics;
-
-	public:
-
-		typedef std::shared_ptr<Tag_Size_Factor> Ptr;
-
-		/**
-		* Constructor.
-		* @param pose The pose of the robot observing the tag in the world frame.
-		* @param tag The pose of the tag in the world frame.
-		* @param tagIntrinsics The intrinsics of the tag being observed.
-		* @param cameraExtrinsics The pose of the camera observing the tag in the robot frame.
-		* @param camera The param struct of the observing camera.
-		* @param measure The measurements of the corners of the tag
-		* @param noise The 8x8 noise matrix.
-		*/
-		Tag_Size_Factor( Pose3d_Node* pose, 
-							   Pose3d_Node* tag, Tag_Node* tagIntrinsics,
-							   Pose3d_Node* cameraExtrinsics, MonocularIntrinsics* cameraIntrinsics, 
-							   const TagCorners& measure, const Noise& noise ) 
-			: Tag_Factor_Base("Tag_Size_Factor", 8, noise, measure), 
-				_pose( pose ), _tag( tag ), _tagIntrinsics( tagIntrinsics ),
-				_extrinsics( cameraExtrinsics ), _cameraIntrinsics( cameraIntrinsics )
-		{
-			_nodes.resize(4);
-			_nodes[0] = _pose;
-			_nodes[1] = _tag;
- 			_nodes[2] = _extrinsics;
-			_nodes[3] = _tagIntrinsics;
-		}
-
-		void initialize() {
-			require(_tag->initialized(),
-				"Tag_Size_Factor requires tag to be initialized");
-			require(_pose->initialized(),
-				"Tag_Size_Factor requires pose to be initialized");
-			require( _extrinsics->initialized(),
-				"Tag_Size_Factor requires camera extrinsics to be initialized");
-			require( _tagIntrinsics->initialized(),
-				"Tag_Size_Factor requires tag intrinsics to be initialized");
-			require( _cameraIntrinsics != nullptr,
-				"Tag_Size_Factor requires camera intrinsics to be initialized");
-		}
-
-		virtual Eigen::Matrix<double,3,4> projectionMatrix(Selector s = ESTIMATE) const {
-			const Pose3d& bot = _pose->value(s);
-			const Pose3d& tag = _tag->value(s);
-			const Pose3d& ext = _extrinsics->value(s);
-			Eigen::Matrix<double, 3, 4> P = _cameraIntrinsics->K() * _rot
-				* ext.oTw() * bot.oTw() * tag.wTo() ;
-			return P;
-		}
-			
-		virtual double tagSize(Selector s = ESTIMATE) const {
-			return _tagIntrinsics->value(s).tagSize;
-		}
-	}; 
-	
 	/*! \brief Factor to estimate robot pose, tag intrinsics/extrinsics, and camera intrinsics/extrinsics. */
 	class Tag_Calibration_Factor: public Tag_Factor_Base {
-		Pose3d_Node* _pose;
-		Pose3d_Node* _tag;
-		Tag_Node* _tagIntrinsics;
-		Pose3d_Node* _extrinsics;
-		Intrinsics_Node* _cameraIntrinsics;
-
+		Pose3d_Node* _cam_ref;				// Pose of the camera reference frame
+		Pose3d_Node* _tag_pose;					// Pose of the tag
+		Pose3d_Node* _cam_ext;				// Relative pose of the camera
+		MonocularIntrinsics_Node* _cam_int;	// Intrinsics of the camera
+		Tag_Node* _tag_int;					// Intrinsics of the tag
+		
 	public:
 
+		struct Properties
+		{
+			bool optimizePose;			// Camera reference pose
+			bool optimizeCamExtrinsics;	// Camera extrinsics
+			bool optimizeCamIntrinsics;	// Camera intrinsics
+			bool optimizeTagLocation;	// Tag pose
+			bool optimizeTagParameters;	// Tag size
+			
+			Properties() : optimizePose( true ), optimizeCamExtrinsics( true ), optimizeCamIntrinsics( true ), 
+				optimizeTagLocation( true ), optimizeTagParameters( true ) {}
+		};
+		
 		typedef std::shared_ptr<Tag_Calibration_Factor> Ptr;
 
-		/**
-		* Constructor.
-		* @param pose The pose of the robot observing the tag in the world frame.
-		* @param tag The pose of the tag in the world frame.
-		* @param tagIntrinsics The intrinsics of the tag being observed.
-		* @param cameraExtrinsics The pose of the camera observing the tag in the robot frame.
-		* @param camera The param struct of the observing camera.
-		* @param measure The measurements of the corners of the tag
-		* @param noise The 8x8 noise matrix.
-		*/
-		Tag_Calibration_Factor( Pose3d_Node* pose, 
-							   Pose3d_Node* tag, Tag_Node* tagIntrinsics,
-							   Pose3d_Node* cameraExtrinsics, Intrinsics_Node* cameraIntrinsics, 
-							   const TagCorners& measure, const Noise& noise ) 
-			: Tag_Factor_Base("Tag_Calibration_Factor", 8, noise, measure), 
-				_pose( pose ), _tag( tag ), _tagIntrinsics( tagIntrinsics ),
-				_extrinsics( cameraExtrinsics ), _cameraIntrinsics( cameraIntrinsics )
+		Tag_Calibration_Factor( Pose3d_Node* cam_ref, Pose3d_Node* tag, 
+								Pose3d_Node* cam_ext, MonocularIntrinsics_Node* cam_int,
+								Tag_Node* tag_int,
+								const TagCorners& measure, const Noise& noise,
+								Properties prop = Properties() ) 
+		: Tag_Factor_Base("Tag_Calibration_Factor", 8, noise, measure), 
+			_cam_ref( cam_ref ), _tag_pose( tag ), _cam_ext( cam_ext ), _cam_int( cam_int ), 
+			_tag_int( tag_int )
 		{
-			_nodes.resize(5);
-			_nodes[0] = _pose;
-			_nodes[1] = _tag;
- 			_nodes[2] = _extrinsics;
-			_nodes[3] = _cameraIntrinsics;
-			_nodes[4] = _tagIntrinsics;
+			if( prop.optimizePose ) 			{ _nodes.push_back( cam_ref ); }
+			if( prop.optimizeCamExtrinsics ) 	{ _nodes.push_back( cam_ext ); }
+			if( prop.optimizeCamIntrinsics ) 	{ _nodes.push_back( cam_int ); }
+			if( prop.optimizeTagLocation )		{ _nodes.push_back( tag ); }
+			if( prop.optimizeTagParameters )	{ _nodes.push_back( tag_int ); }
+			require( _nodes.size() > 0,
+					 "Tag_Calibration_Factor created with no optimization variables." );
 		}
 
 		void initialize() {
-			require(_tag->initialized(),
-				"Tag_Calibration_Factor requires tag to be initialized");
-			require(_pose->initialized(),
-				"Tag_Calibration_Factor requires pose to be initialized");
-			require( _extrinsics->initialized(),
-				"Tag_Calibration_Factor requires camera extrinsics to be initialized");
-			require( _tagIntrinsics->initialized(),
-				"Tag_Calibration_Factor requires tag intrinsics to be initialized");
-			require( _cameraIntrinsics ->initialized(),
-				"Tag_Calibration_Factor requires camera intrinsics to be initialized");
+			require( _cam_ref->initialized() && _tag_pose->initialized() && _cam_ext->initialized() &&
+					 _cam_int->initialized() && _tag_int->initialized(), 
+					 "Tag_Calibration_Factor requires all nodes to be initialized." );
 		}
 
 		virtual Eigen::Matrix<double,3,4> projectionMatrix(Selector s = ESTIMATE) const {
-			const Pose3d& bot = _pose->value(s);
-			const Pose3d& tag = _tag->value(s);
-			const Pose3d& ext = _extrinsics->value(s);
-			Eigen::Matrix<double, 3, 4> P = _cameraIntrinsics->value(s).K() * _rot
+			const Pose3d& bot = _cam_ref->value(s);
+			const Pose3d& tag = _tag_pose->value(s);
+			const Pose3d& ext = _cam_ext->value(s);
+			Eigen::Matrix<double, 3, 4> P = _cam_int->value(s).K() * _rot
 				* ext.oTw() * bot.oTw() * tag.wTo() ;
 			return P;
 		}
 			
 		virtual double tagSize(Selector s = ESTIMATE) const {
-			return _tagIntrinsics->value(s).tagSize;
+			return _tag_int->value(s).tagSize;
 		}
 	}; 
 
