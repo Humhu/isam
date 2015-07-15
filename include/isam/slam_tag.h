@@ -75,16 +75,16 @@ namespace isam {
 		return out;
 	}
 	
-	typedef NodeT<TagIntrinsics> Tag_Node;
+	typedef NodeT<TagIntrinsics> TagIntrinsics_Node;
 
 	class Tag_Intrinsics_Factor : public FactorT<TagIntrinsics> {
-		Tag_Node* _tag;
+		TagIntrinsics_Node* _tag;
 		
 	public:
 		
 		typedef std::shared_ptr<Tag_Intrinsics_Factor> Ptr;
 		
-		Tag_Intrinsics_Factor( Tag_Node* tag, const TagIntrinsics& prior, const Noise& noise )
+		Tag_Intrinsics_Factor( TagIntrinsics_Node* tag, const TagIntrinsics& prior, const Noise& noise )
 		: FactorT<TagIntrinsics>( "Tag_Intrinsics_Factor", 1, noise, prior ), _tag( tag ) {
 			_nodes.resize(1);
 			_nodes[0] = tag;
@@ -187,7 +187,7 @@ namespace isam {
 		Pose3d_Node* _tag_pose;					// Pose of the tag
 		Pose3d_Node* _cam_ext;				// Relative pose of the camera
 		MonocularIntrinsics_Node* _cam_int;	// Intrinsics of the camera
-		Tag_Node* _tag_int;					// Intrinsics of the tag
+		TagIntrinsics_Node* _tag_int;					// Intrinsics of the tag
 		
 	public:
 
@@ -207,7 +207,7 @@ namespace isam {
 
 		Tag_Calibration_Factor( Pose3d_Node* cam_ref, Pose3d_Node* tag, 
 								Pose3d_Node* cam_ext, MonocularIntrinsics_Node* cam_int,
-								Tag_Node* tag_int,
+								TagIntrinsics_Node* tag_int,
 								const TagCorners& measure, const Noise& noise,
 								Properties prop = Properties() ) 
 		: Tag_Factor_Base("Tag_Calibration_Factor", 8, noise, measure), 
