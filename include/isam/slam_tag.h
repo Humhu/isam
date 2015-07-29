@@ -16,6 +16,7 @@
 namespace isam {
 	
 	// TODO Add code, ID, family?
+	// NOTE Tag size is no longer optimizable, only the corner offsets
 	class TagIntrinsics {
 	public:
 		
@@ -27,13 +28,18 @@ namespace isam {
 		typedef std::shared_ptr<TagIntrinsics> Ptr;
 		
 		double tagSize; // Dimension of one side
+		double cornerOffsets[3]; // z offsets for corners 0, 1, and 2, assumed 0 mean
 		
 		TagIntrinsics()
-			: tagSize( 1.0 )
+			: tagSize( 1.0 ), cornerOffsets{0, 0, 0}
 		{}
 		
 		TagIntrinsics( double ts )
-			: tagSize( ts )
+			: tagSize( ts ), cornerOffsets{0, 0, 0}
+		{}
+		
+		TagIntrinsics( double ts, const Eigen::VectorXd& offsets )
+			: tagSize( ts ), cornerOffsets{ offsets(0), offsets(1), offsets(2) }
 		{}
 		
 		TagIntrinsics exmap( const Eigen::VectorXd& delta )
@@ -46,25 +52,29 @@ namespace isam {
 		void set( const Eigen::VectorXd& v )
 		{
 			tagSize = v(0);
+// 			cornerOffsets[0] = v(0);
+// 			cornerOffsets[1] = v(1);
+// 			cornerOffsets[2] = v(2);
 		}
 		
 		Eigen::VectorXb is_angle() const
 		{
-			Eigen::VectorXb isang( dim );
+			Eigen::VectorXb isang( 1 );
 			isang << false;
 			return isang;
 		}
 		
 		Eigen::VectorXd vector() const
 		{
-			Eigen::VectorXd vec(1);
+			Eigen::VectorXd vec( 1 );
 			vec << tagSize;
 			return vec;
 		}
 		
 		void write( std::ostream& out ) const
 		{
-			out << "(size: " << tagSize << ")";
+			out << "(size: " << tagSize << " offsets: " << cornerOffsets[0]
+				<< ", " << cornerOffsets[1] << ", " << cornerOffsets[2] << ")";
 		}
 		
 	};
@@ -161,16 +171,24 @@ namespace isam {
 		virtual TagCorners predict(Selector s = ESTIMATE) const {
 			Eigen::Matrix<double, 3, 4> P = projectionMatrix( s );
 				
-			double h = tagSize( s )/2.0;
-			TagCorners predicted(project(P, -h, -h), project(P, h, -h), project(P, h, h),
-				project(P, -h, h));
+			TagIntrinsics intrinsics = getIntrinsics( s );
+			double h = intrinsics.tagSize/2.0;
+			double cornerZ[4] = { intrinsics.cornerOffsets[0], 
+								  intrinsics.cornerOffsets[1], 
+								  intrinsics.cornerOffsets[2],
+								  0 };
+			cornerZ[3] = -cornerZ[0] - cornerZ[1] - cornerZ[2];
+			TagCorners predicted( project(P, -h, -h, cornerZ[0]), 
+								  project(P, h, -h, cornerZ[1]), 
+								  project(P, h, h, cornerZ[2]),
+								  project(P, -h, h, cornerZ[3]) );
 			
 			return predicted;
 		}
 		
 		// NOTE x-forward convention here for camera
-		virtual Point2d project( const Eigen::Matrix<double, 3, 4>& P, double u, double v) const {
-			Eigen::Vector4d corner(0.0, u, v, 1.0);
+		virtual Point2d project( const Eigen::Matrix<double, 3, 4>& P, double u, double v, double z) const {
+			Eigen::Vector4d corner(z, u, v, 1.0);
 			Eigen::Vector3d x;
 			x = P * corner;
 			return Point2d(x(0) / x(2), x(1) / x(2));
@@ -178,7 +196,7 @@ namespace isam {
 		
 		// Override for derived factors
 		virtual Eigen::Matrix<double, 3, 4> projectionMatrix(Selector s = ESTIMATE) const = 0;
-		virtual double tagSize(Selector s = ESTIMATE) const = 0;
+		virtual TagIntrinsics getIntrinsics(Selector s = ESTIMATE) const = 0;
 	};
 	
 	/*! \brief Factor to estimate robot pose, tag intrinsics/extrinsics, and camera intrinsics/extrinsics. */
@@ -197,10 +215,11 @@ namespace isam {
 			bool optimizeCamExtrinsics;	// Camera extrinsics
 			bool optimizeCamIntrinsics;	// Camera intrinsics
 			bool optimizeTagLocation;	// Tag pose
-			bool optimizeTagParameters;	// Tag size
+// 			bool optimizeTagSize;		// Tag dimension
+			bool optimizeTagStructure;	// Tag corner offsets
 			
 			Properties() : optimizePose( true ), optimizeCamExtrinsics( true ), optimizeCamIntrinsics( true ), 
-				optimizeTagLocation( true ), optimizeTagParameters( true ) {}
+				optimizeTagLocation( true ), optimizeTagStructure( true ) {}
 		};
 		
 		typedef std::shared_ptr<Tag_Calibration_Factor> Ptr;
@@ -218,7 +237,7 @@ namespace isam {
 			if( prop.optimizeCamExtrinsics ) 	{ _nodes.push_back( cam_ext ); }
 			if( prop.optimizeCamIntrinsics ) 	{ _nodes.push_back( cam_int ); }
 			if( prop.optimizeTagLocation )		{ _nodes.push_back( tag ); }
-			if( prop.optimizeTagParameters )	{ _nodes.push_back( tag_int ); }
+			if( prop.optimizeTagStructure )		{ _nodes.push_back( tag_int ); }
 			require( _nodes.size() > 0,
 					 "Tag_Calibration_Factor created with no optimization variables." );
 		}
@@ -238,8 +257,8 @@ namespace isam {
 			return P;
 		}
 			
-		virtual double tagSize(Selector s = ESTIMATE) const {
-			return _tag_int->value(s).tagSize;
+		virtual TagIntrinsics getIntrinsics(Selector s = ESTIMATE) const {
+			return _tag_int->value(s);
 		}
 	}; 
 
