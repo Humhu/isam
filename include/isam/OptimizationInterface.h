@@ -30,8 +30,8 @@
 
 #include <Eigen/Dense>
 
-#include "SparseSystem.h"
-#include "Node.h"
+#include "isam/SparseSystem.h"
+#include "isam/Node.h"
 
 
 namespace isam {

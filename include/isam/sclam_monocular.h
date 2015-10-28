@@ -23,10 +23,10 @@
 #pragma once
 
 #include <Eigen/Dense>
-#include "Node.h"
-#include "Pose3d.h"
-#include "Point3d.h"
-#include "slam_monocular.h"
+#include "isam/Node.h"
+#include "isam/Pose3d.h"
+#include "isam/Point3d.h"
+#include "isam/slam_monocular.h"
 
 /*! \brief SCLAM_Monocular
  * Contains nodes and factors for optimizing single camera intrinsics and relative poses with
@@ -38,20 +38,19 @@ namespace isam
 	typedef NodeT<MonocularIntrinsics> MonocularIntrinsics_Node;
 	
 	/*! \brief Represents a prior on monocular camera intrinsics. */
-	class Intrinsics_Factor : public FactorT<MonocularIntrinsics> 
+	class MonocularIntrinsicsPrior : public FactorT<MonocularIntrinsics> 
 	{
-		MonocularIntrinsics_Node* _intrinsics;
-		
 	public:
 		
-		typedef std::shared_ptr<Intrinsics_Factor> Ptr;
+		typedef std::shared_ptr<MonocularIntrinsicsPrior> Ptr;
 		
-		Intrinsics_Factor( MonocularIntrinsics_Node* intrinsics, const MonocularIntrinsics& prior, 
-						   const Noise& noise )
-		: FactorT<MonocularIntrinsics>("Intrinsics_Factor", 4, noise, prior), _intrinsics(intrinsics) 
+		MonocularIntrinsicsPrior( MonocularIntrinsics_Node* camera, 
+		                          const MonocularIntrinsics& prior, 
+		                          const Noise& noise )
+		: FactorT<MonocularIntrinsics>("MonocularIntrinsicsPrior", 4, noise, prior),
 		{
 			_nodes.resize(1);
-			_nodes[0] = intrinsics;
+			_nodes[ cameraInd ] = camera;
 		}
 		
 		void initialize() 
@@ -65,9 +64,14 @@ namespace isam
 		
 		Eigen::VectorXd basic_error( Selector s = ESTIMATE ) const 
 		{
-			Eigen::VectorXd err = _nodes[0]->vector(s) - _measure.vector();
+			Eigen::VectorXd err = _nodes[ cameraInd ]->vector(s) - _measure.vector();
 			return err;
 		}
+		
+	private:
+		
+		static const unsigned int cameraInd = 0;
+		
 	};
 	
 	/*! \brief General monocular camera calibration factor. Can handle hand-eye extrinsics calibrations

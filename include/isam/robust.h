@@ -29,7 +29,7 @@
 
 #include <cmath>
 
-#include "util.h"
+#include "isam/util.h"
 
 namespace isam {
 

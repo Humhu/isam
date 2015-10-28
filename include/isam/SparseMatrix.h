@@ -30,7 +30,7 @@
 #include <iostream>
 #include <Eigen/Dense>
 
-#include "SparseVector.h"
+#include "isam/SparseVector.h"
 
 namespace isam {
 

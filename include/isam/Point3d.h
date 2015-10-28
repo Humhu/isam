@@ -29,7 +29,7 @@
 
 #include <Eigen/Dense>
 
-#include "Point2d.h"
+#include "isam/Point2d.h"
 
 namespace isam {
 

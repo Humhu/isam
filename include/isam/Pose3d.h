@@ -55,12 +55,12 @@
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
 
-#include "util.h"
-#include "Rot3d.h"
-#include "Pose2d.h"
-#include "Point3d.h"
-#include "Point3dh.h"
-#include "Point2d.h"
+#include "isam/util.h"
+#include "isam/Rot3d.h"
+#include "isam/Pose2d.h"
+#include "isam/Point3d.h"
+#include "isam/Point3dh.h"
+#include "isam/Point2d.h"
 
 namespace isam {
 

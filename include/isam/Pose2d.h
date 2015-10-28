@@ -31,8 +31,8 @@
 #include <ostream>
 #include <Eigen/Dense>
 
-#include "util.h"
-#include "Point2d.h"
+#include "isam/util.h"
+#include "isam/Point2d.h"
 
 namespace Eigen {
  typedef Matrix<bool, Dynamic, 1> VectorXb;

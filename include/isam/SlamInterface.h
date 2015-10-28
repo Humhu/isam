@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Slam.h"
+#include "isam/Slam.h"
 
 #include <memory>
 #include <stdexcept>

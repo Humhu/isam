@@ -29,7 +29,7 @@
 
 #include <Eigen/Dense>
 
-#include "SparseSystem.h"
+#include "isam/SparseSystem.h"
 
 namespace isam {
 

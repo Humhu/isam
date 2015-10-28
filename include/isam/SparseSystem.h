@@ -29,7 +29,7 @@
 
 #include <Eigen/Dense>
 
-#include "OrderedSparseMatrix.h"
+#include "isam/OrderedSparseMatrix.h"
 
 namespace isam {
 

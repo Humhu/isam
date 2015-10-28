@@ -28,6 +28,7 @@
 #pragma once
 
 #include <Eigen/Dense>
+#include "isam/Node.h"
 
 namespace isam {
 

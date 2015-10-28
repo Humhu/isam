@@ -9,9 +9,9 @@
 
 #include <Eigen/Dense>
 
-#include "isam.h"
-#include "slam_monocular.h"
-#include "sclam_monocular.h"
+#include "isam/isam.h"
+#include "isam/slam_monocular.h"
+#include "isam/sclam_monocular.h"
 
 namespace isam {
 	
@@ -112,7 +112,6 @@ namespace isam {
 			return err;
 		}
 	};
-	
 	
 	// Apriltag detection: image coordinates of four corners in fixed order
 	class TagCorners {

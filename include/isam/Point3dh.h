@@ -30,7 +30,7 @@
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
 
-#include "Point3d.h"
+#include "isam/Point3d.h"
 
 namespace isam {
 

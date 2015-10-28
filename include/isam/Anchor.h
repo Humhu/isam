@@ -28,12 +28,12 @@
 
 #pragma once
 
-#include "Node.h"
-#include "Factor.h"
-#include "Pose2d.h"
-#include "Point2d.h"
-#include "Pose3d.h"
-#include "Slam.h"
+#include "isam/Node.h"
+#include "isam/Factor.h"
+#include "isam/Pose2d.h"
+#include "isam/Point2d.h"
+#include "isam/Pose3d.h"
+#include "isam/Slam.h"
 
 namespace isam {
 

@@ -32,8 +32,8 @@
 #include <string>
 #include <ostream>
 
-#include "Node.h"
-#include "Factor.h"
+#include "isam/Node.h"
+#include "isam/Factor.h"
 
 namespace isam {
 

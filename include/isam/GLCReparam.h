@@ -32,9 +32,9 @@
 #include <sstream>
 #include <Eigen/Dense>
 
-#include "Node.h"
-#include "Factor.h"
-#include "Anchor.h"
+#include "isam/Node.h"
+#include "isam/Factor.h"
+#include "isam/Anchor.h"
 
 namespace isam {
 

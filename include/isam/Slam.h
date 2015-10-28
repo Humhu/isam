@@ -32,15 +32,14 @@
 #include <Eigen/Dense>
 #include <memory>
 
-#include "SparseSystem.h"
-#include "Node.h"
-#include "Factor.h"
-#include "Graph.h"
-#include "Properties.h"
-#include "OptimizationInterface.h"
-#include "Optimizer.h"
-#include "Covariances.h"
-
+#include "isam/SparseSystem.h"
+#include "isam/Node.h"
+#include "isam/Factor.h"
+#include "isam/Graph.h"
+#include "isam/Properties.h"
+#include "isam/OptimizationInterface.h"
+#include "isam/Optimizer.h"
+#include "isam/Covariances.h"
 
 namespace isam {
 	

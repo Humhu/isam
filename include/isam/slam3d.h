@@ -28,11 +28,11 @@
 #pragma once
 
 #include <Eigen/Dense>
-#include "Node.h"
-#include "Factor.h"
-#include "Pose3d.h"
-#include "Point3d.h"
-#include "Anchor.h"
+#include "isam/Node.h"
+#include "isam/Factor.h"
+#include "isam/Pose3d.h"
+#include "isam/Point3d.h"
+#include "isam/Anchor.h"
 
 namespace isam {
 	

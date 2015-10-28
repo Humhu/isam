@@ -2,7 +2,7 @@
  * @file Factor.h
  * @brief Graph factor for iSAM.
  * @author Michael Kaess
- * @version $Id: Factor.h 7610 2012-10-25 10:21:12Z hordurj $
+ * @modified Humphrey Hu
  *
  * Copyright (C) 2009-2013 Massachusetts Institute of Technology.
  * Michael Kaess, Hordur Johannsson, David Rosen,
@@ -34,12 +34,12 @@
 #include <math.h> // for sqrt
 #include <Eigen/Dense>
 
-#include "util.h"
-#include "Jacobian.h"
-#include "Element.h"
-#include "Node.h"
-#include "Noise.h"
-#include "numericalDiff.h"
+#include "isam/util.h"
+#include "isam/Jacobian.h"
+#include "isam/Element.h"
+#include "isam/Node.h"
+#include "isam/Noise.h"
+#include "isam/numericalDiff.h"
 
 namespace isam {
 	
@@ -91,6 +91,12 @@ namespace isam {
 				}
 			}
 			#endif
+			// TODO Possibly remove check for runtime speed
+			if( dim != noise.dim() )
+			{
+				throw std::runtime_error( "Factor: dimensionality " + std::to_string( dim )
+				    + " does not match noise dimensionality " + std::to_string( noise.dim() ) );
+			}
 			_id = _next_id++;
 		}
 		

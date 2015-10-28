@@ -35,8 +35,7 @@
 #include <sstream>
 #include <Eigen/Dense>
 
-#include "Node.h"
-
+#include "isam/Node.h"
 
 namespace isam {
 

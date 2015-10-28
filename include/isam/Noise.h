@@ -2,7 +2,7 @@
  * @file Noise.h
  * @brief Various noise models.
  * @author Michael Kaess
- * @version $Id: Noise.h 5797 2011-12-07 03:50:41Z kaess $
+ * @modified Humphrey Hu
  *
  * Copyright (C) 2009-2013 Massachusetts Institute of Technology.
  * Michael Kaess, Hordur Johannsson, David Rosen,
@@ -37,6 +37,9 @@ class Noise {
 public:
   Eigen::MatrixXd _sqrtinf;
   const Eigen::MatrixXd& sqrtinf() const {return _sqrtinf;}
+  
+  /*! \brief Return the dimensionality of this noise object. */
+  int dim() const { return _sqrtinf.rows(); }
 };
 
 // noise model based on square root information matrix

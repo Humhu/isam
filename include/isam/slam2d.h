@@ -32,11 +32,11 @@
 #include <sstream>
 #include <Eigen/Dense>
 
-#include "Node.h"
-#include "Factor.h"
-#include "Pose2d.h"
-#include "Point2d.h"
-#include "Anchor.h"
+#include "isam/Node.h"
+#include "isam/Factor.h"
+#include "isam/Pose2d.h"
+#include "isam/Point2d.h"
+#include "isam/Anchor.h"
 
 namespace Eigen {
 	typedef Matrix< double , 1 , 1> Vector1d;

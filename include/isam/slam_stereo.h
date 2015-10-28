@@ -32,10 +32,10 @@
 #include <math.h>
 #include <Eigen/Dense>
 
-#include "Node.h"
-#include "Factor.h"
-#include "Pose3d.h"
-#include "Point3dh.h"
+#include "isam/Node.h"
+#include "isam/Factor.h"
+#include "isam/Pose3d.h"
+#include "isam/Point3dh.h"
 
 namespace isam {
 

@@ -32,11 +32,11 @@
 #include <math.h>
 #include <Eigen/Dense>
 
-#include "Node.h"
-#include "Factor.h"
-#include "Pose3d.h"
-#include "Point3dh.h"
-#include "slam3d.h"
+#include "isam/Node.h"
+#include "isam/Factor.h"
+#include "isam/Pose3d.h"
+#include "isam/Point3dh.h"
+#include "isam/slam3d.h"
 
 /*! \brief SLAM_Monocular 
  * Contains nodes and factors for optimizing single camera trajectories with point features. */
@@ -74,7 +74,8 @@ namespace isam
 		}
 	};
 	
-	/*! \brief Represents the intrinsic parameters of a monocular camera. */
+	/*! \brief Represents the intrinsic parameters of a monocular camera. Uses a
+	 * simple pinhole model with no distortion.*/
 	class MonocularIntrinsics 
 	{
 		double _fx, _fy;

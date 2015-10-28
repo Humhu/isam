@@ -27,8 +27,8 @@
 
 #pragma once
 
-#include "SparseVector.h"
-#include "SparseMatrix.h"
+#include "isam/SparseVector.h"
+#include "isam/SparseMatrix.h"
 
 #include <string>
 #include <fstream>

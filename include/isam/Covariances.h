@@ -31,9 +31,9 @@
 #include <map>
 #include <Eigen/Dense>
 
-#include "SparseSystem.h"
-#include "Node.h"
-#include "covariance.h"
+#include "isam/SparseSystem.h"
+#include "isam/Node.h"
+#include "isam/covariance.h"
 
 namespace isam {
 

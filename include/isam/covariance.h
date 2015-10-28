@@ -40,7 +40,7 @@
 #include "boost/unordered_map.hpp"
 #endif
 
-#include "SparseMatrix.h"
+#include "isam/SparseMatrix.h"
 
 namespace isam {
 

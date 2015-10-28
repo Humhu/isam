@@ -30,11 +30,11 @@
 
 #include <Eigen/Dense>
 
-#include "Properties.h"
-#include "OptimizationInterface.h"
-#include "SparseSystem.h"
-#include "Cholesky.h"
-#include "Node.h"
+#include "isam/Properties.h"
+#include "isam/OptimizationInterface.h"
+#include "isam/SparseSystem.h"
+#include "isam/Cholesky.h"
+#include "isam/Node.h"
 
 namespace isam {
 

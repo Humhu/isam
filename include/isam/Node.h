@@ -31,7 +31,7 @@
 #include <Eigen/Dense>
 #include <memory>
 
-#include "Element.h"
+#include "isam/Element.h"
 
 namespace Eigen {
 	typedef Matrix<bool, Dynamic, 1> VectorXb;
