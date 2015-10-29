@@ -40,6 +40,8 @@ public:
 	// We have fixed-size Eigen members
 	EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 	
+	static const char* name() { return "FiducialIntrinsics"; }
+	
 	/*! \brief Construct a fiducial from a vector of points. */
 	FiducialIntrinsics( const std::vector <isam::Point3d>& pts )
 	{
@@ -72,7 +74,7 @@ public:
 	}
 	
 	/*! \brief Returns the dimensionality, equal to 3 times the number of points. */
-	size_t dim() const
+	int dim() const
 	{
 		return points.rows();
 	}
@@ -107,11 +109,22 @@ public:
 		return points;
 	}
 	
+	void write( std::ostream& out ) const
+	{
+		out << "(points: " << points.transpose() << ")";
+	}
+	
 private:
 
 	Eigen::VectorXd points;
 	
 };
+
+std::ostream& operator<<( std::ostream& out, const FiducialIntrinsics& in )
+{
+	in.write( out );
+	return out;
+}
 
 typedef NodeT <FiducialIntrinsics> FiducialIntrinsics_Node;
 
@@ -182,11 +195,22 @@ public:
 		return points;
 	}
 	
+	void write( std::ostream& out ) const
+	{
+		out << "(points: " << points.transpose() << ")";
+	}
+	
 private:
 	
 	Eigen::VectorXd points;
 	
 };
+
+std::ostream& operator<<( std::ostream& out, const FiducialDetection& det )
+{
+	det.write( out );
+	return out;
+}
 
 FiducialDetection Predict( const FiducialIntrinsics& fiducial,
                            const MonocularIntrinsics& camera,

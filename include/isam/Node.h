@@ -120,6 +120,13 @@ namespace isam {
 			_value0 = NULL;
 		}
 		
+		NodeT( const char* name, int dim )
+		: Node( name, dim )
+		{
+			_value = NULL;
+			_value0 = NULL;
+		}
+		
 		virtual ~NodeT() {
 			delete _value;
 			delete _value0;

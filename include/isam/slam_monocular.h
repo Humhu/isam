@@ -93,7 +93,7 @@ namespace isam
 		typedef std::shared_ptr<MonocularIntrinsics> Ptr;
 		
 		MonocularIntrinsics() 
-			: _fx(1), _fy(1), _pp(Eigen::Vector2d(0.5,0.5)) 
+			: _fx(1), _fy(1), _pp(Eigen::Vector2d(0,0)) 
 		{}
 		
 		MonocularIntrinsics(double fx, double fy, const Eigen::Vector2d& pp) 

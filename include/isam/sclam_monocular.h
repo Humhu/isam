@@ -48,29 +48,30 @@ namespace isam
 		                          const MonocularIntrinsics& prior, 
 		                          const Noise& noise )
 		: FactorT<MonocularIntrinsics>("MonocularIntrinsicsPrior", 4, noise, prior),
+		_camera( camera )
 		{
 			_nodes.resize(1);
-			_nodes[ cameraInd ] = camera;
+			_nodes[ 0 ] = camera;
 		}
 		
 		void initialize() 
 		{
-			if( !_intrinsics->initialized()) 
+			if( !_camera->initialized()) 
 			{
 				MonocularIntrinsics predict = _measure;
-				_intrinsics->init( predict );
+				_camera->init( predict );
 			}
 		}
 		
 		Eigen::VectorXd basic_error( Selector s = ESTIMATE ) const 
 		{
-			Eigen::VectorXd err = _nodes[ cameraInd ]->vector(s) - _measure.vector();
+			Eigen::VectorXd err = _camera->vector(s) - _measure.vector();
 			return err;
 		}
 		
 	private:
 		
-		static const unsigned int cameraInd = 0;
+		MonocularIntrinsics_Node* _camera;
 		
 	};
 	
