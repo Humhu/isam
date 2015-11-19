@@ -38,16 +38,16 @@ namespace isam
 	typedef NodeT<MonocularIntrinsics> MonocularIntrinsics_Node;
 	
 	/*! \brief Represents a prior on monocular camera intrinsics. */
-	class MonocularIntrinsicsPrior : public FactorT<MonocularIntrinsics> 
+	class MonocularIntrinsics_Prior : public FactorT<MonocularIntrinsics> 
 	{
 	public:
 		
-		typedef std::shared_ptr<MonocularIntrinsicsPrior> Ptr;
+		typedef std::shared_ptr<MonocularIntrinsics_Prior> Ptr;
 		
-		MonocularIntrinsicsPrior( MonocularIntrinsics_Node* camera, 
+		MonocularIntrinsics_Prior( MonocularIntrinsics_Node* camera, 
 		                          const MonocularIntrinsics& prior, 
 		                          const Noise& noise )
-		: FactorT<MonocularIntrinsics>("MonocularIntrinsicsPrior", 4, noise, prior),
+		: FactorT<MonocularIntrinsics>("MonocularIntrinsics_Prior", 4, noise, prior),
 		_camera( camera )
 		{
 			_nodes.resize(1);
@@ -69,6 +69,14 @@ namespace isam
 			return err;
 		}
 		
+		virtual Jacobian jacobian()
+		{
+			Eigen::VectorXd r = error( LINPOINT );
+			Jacobian jac( r );
+			jac.add_term( _nodes[0], Eigen::MatrixXd::Identity( 3, 3 ) );
+			return jac;
+		}
+		
 	private:
 		
 		MonocularIntrinsics_Node* _camera;
@@ -77,7 +85,7 @@ namespace isam
 	
 	/*! \brief General monocular camera calibration factor. Can handle hand-eye extrinsics calibrations
 	 * as well as feature-structure calibration. */
-	class Monocular_Calibration_Factor : public Monocular_Factor_Base
+	class MonocularCalibration_Factor : public Monocular_Factor_Base
 	{
 		Pose3d_Node* _cam_ref;			// Pose of the camera reference frame
 		Pose3d_Node* _point_ref;		// Pose of the point reference frame
@@ -99,14 +107,14 @@ namespace isam
 				optimizeLocation( true ), optimizeStructure( true ) {}
 		};
 		
-		typedef std::shared_ptr<Monocular_Calibration_Factor> Ptr;
+		typedef std::shared_ptr<MonocularCalibration_Factor> Ptr;
 		
-		Monocular_Calibration_Factor( Pose3d_Node* cam_ref, Pose3d_Node* point_ref,
+		MonocularCalibration_Factor( Pose3d_Node* cam_ref, Pose3d_Node* point_ref,
 									 Pose3d_Node* cam_ext, Point3d_Node* point_ext, 
 									 MonocularIntrinsics_Node* cam_int,
 									 const MonocularMeasurement& measure, const isam::Noise& noise,
 									 Properties prop = Properties() )
-		: Monocular_Factor_Base("Monocular_Calibration_Factor", noise, measure),
+		: Monocular_Factor_Base("MonocularCalibration_Factor", noise, measure),
 		_cam_ref( cam_ref ), _point_ref( point_ref ), _cam_ext( cam_ext ), _point_ext( point_ext ),
 		_cam_int( cam_int )
 		{
@@ -117,14 +125,14 @@ namespace isam
 			if( prop.optimizeStructure ) 		{ _nodes.push_back( point_ext ); }
 			if( _nodes.size() == 0 )
 			{
-				throw std::runtime_error( "Monocular_Calibration_Factor created with no optimization variables." );
+				throw std::runtime_error( "MonocularCalibration_Factor created with no optimization variables." );
 			}
 		}
 		
 		void initialize() {
 			require( _cam_ref->initialized() && _point_ref->initialized() && _cam_ext->initialized() &&
 					_point_ext->initialized() && _cam_int->initialized(),
-					 "Monocular_Calibration_Factor requires all nodes to be initialized" );
+					 "MonocularCalibration_Factor requires all nodes to be initialized" );
 		}
 		
 		virtual Eigen::Matrix<double, 3, 4> projectionMatrix(Selector s = ESTIMATE) const 

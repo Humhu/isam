@@ -110,12 +110,21 @@ namespace isam {
 		typedef T DataType;
 		typedef std::shared_ptr<NodeT> Ptr;
 		
-		NodeT() : Node(T::name(), T::dim) {
+		NodeT() 
+		: Node(T::name(), T::dim) {
 			_value = NULL;
 			_value0 = NULL;
 		}
 		
-		NodeT(const char* name) : Node(name, T::dim) {
+		NodeT(const char* name) 
+		: Node(name, T::dim) {
+			_value = NULL;
+			_value0 = NULL;
+		}
+		
+		NodeT( int dim ) 
+		: Node( T::name(), dim )
+		{
 			_value = NULL;
 			_value0 = NULL;
 		}
