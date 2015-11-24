@@ -2,6 +2,7 @@
  * @file slam_monocular.h
  * @brief Provides nodes and factors for monocular vision applications.
  * @author Michael Kaess
+ * @modified Humphrey Hu
  * @version $Id: slam_monocular.h 9316 2013-11-18 20:26:11Z kaess $
  *
  * Copyright (C) 2009-2013 Massachusetts Institute of Technology.
@@ -44,201 +45,145 @@
 namespace isam 
 {
 	
-	/*! \brief Represents the observation of a point by a camera. */
-	class MonocularMeasurement 
-	{
-		friend std::ostream& operator<<(std::ostream& out, const MonocularMeasurement& t) 
-		{
-			t.write(out);
-			return out;
-		}
-		
-	public:
-		
-		double u;
-		double v;
-		bool valid; // Denotes whether the measurement is in front of the camera plane
-		
-		MonocularMeasurement(double u, double v) : u(u), v(v), valid(true) {}
-		MonocularMeasurement(double u, double v, bool valid) : u(u), v(v), valid(valid) {}
-		
-		Eigen::Vector2d vector() const 
-		{
-			Eigen::Vector2d tmp(u, v);
-			return tmp;
-		}
-		
-		void write(std::ostream &out) const 
-		{
-			out << "(" << u << ", " << v << ")";
-		}
-	};
+/*! \brief Represents the observation of a point by a camera. */
+class MonocularMeasurement 
+{
+public:
 	
-	/*! \brief Represents the intrinsic parameters of a monocular camera. Uses a
-	 * simple pinhole model with no distortion.*/
-	class MonocularIntrinsics 
-	{
-		double _fx, _fy;
-		Eigen::Vector2d _pp;
-		
-	public:
-		EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+	double u;
+	double v;
+	bool valid; // Denotes whether the measurement is in front of the camera plane
+	
+	MonocularMeasurement(double u, double v);
+	MonocularMeasurement(double u, double v, bool valid);
+	
+	Eigen::Vector2d vector() const;
+	
+	void write(std::ostream &out) const;
+};
 
-		static const int dim = 2;
-		static const char* name() 
-		{
-			return "MonocularIntrinsics";
-		}
-		
-		typedef std::shared_ptr<MonocularIntrinsics> Ptr;
-		
-		MonocularIntrinsics() 
-		: _fx(1), _fy(1), _pp(Eigen::Vector2d(0,0)) 
-		{}
-		
-		MonocularIntrinsics(double fx, double fy, const Eigen::Vector2d& pp) 
-		: _fx(fx), _fy(fy), _pp(pp) 
-		{}
-		
-		MonocularIntrinsics( double fx, double fy, double px, double py )
-		: _fx(fx), _fy(fy), _pp( px, py )
-		{}
-		
-		double fx() const { return _fx; }
-		double fy() const { return _fy; }
-		
-		Eigen::Vector2d principalPoint() const { return _pp; }
-		
-		Eigen::Matrix<double, 3, 4> K() const 
-		{
-			Eigen::Matrix<double, 3, 4> K;
-			K.row(0) << _fx, 0, _pp(0), 0;
-			K.row(1) << 0, _fy, _pp(1), 0;
-			K.row(2) << 0, 0, 1, 0;
-			return K;
-		}
-		
-		MonocularIntrinsics exmap( const Eigen::VectorXd& delta )
-		{
-			Eigen::VectorXd current = vector();
-			current += delta;
-			Eigen::Vector2d pp;
-			pp << current(2), current(3);
-			return MonocularIntrinsics( current(0), current(1), pp );
-		}
+std::ostream& operator<<(std::ostream& out, const MonocularMeasurement& t);
+
+/*! \brief Represents the intrinsic parameters of a monocular camera. Uses a
+ * simple pinhole model with no distortion.*/
+class MonocularIntrinsics 
+{
+	double _fx, _fy;
+	Eigen::Vector2d _pp;
 	
-		void set( const Eigen::VectorXd& v )
-		{
-			_fx = v(0);
-			_fy = v(1);
-			_pp(0) = v(2);
-			_pp(1) = v(3);
-		}
-		
-		Eigen::VectorXb is_angle() const {
-			Eigen::VectorXb isang( dim );
-			isang << false, false, false, false;
-			return isang;
-		}
+public:
+	EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+
+	static const int dim = 2;
+	static const char* name();
 	
-		Eigen::VectorXd vector() const
-		{
-			Eigen::VectorXd vec(4);
-			vec << _fx, _fy, _pp(0), _pp(1);
-			return vec;
-		}
-		
-		void write( std::ostream& out ) const
-		{
-			out << "(fx: " << _fx << " fy: " << _fy << "pp: [" << _pp(0) << ", " << _pp(1) << "])";
-		}
-	};
+	typedef std::shared_ptr<MonocularIntrinsics> Ptr;
 	
-	std::ostream& operator<<( std::ostream& out, const MonocularIntrinsics& intrinsics )
+	MonocularIntrinsics();
+	
+	MonocularIntrinsics(double fx, double fy, const Eigen::Vector2d& pp);
+	
+	MonocularIntrinsics( double fx, double fy, double px, double py );
+	
+	double fx() const;
+	double fy() const;
+	
+	Eigen::Vector2d principalPoint() const;
+	
+	Eigen::Matrix<double, 3, 4> K() const;
+	
+	MonocularIntrinsics exmap( const Eigen::VectorXd& delta );
+
+	void set( const Eigen::VectorXd& v );
+	
+	Eigen::VectorXb is_angle() const;
+
+	Eigen::VectorXd vector() const;
+	
+	void write( std::ostream& out ) const;
+};
+
+std::ostream& operator<<( std::ostream& out, const MonocularIntrinsics& intrinsics );
+
+class Monocular_Factor_Base : public FactorT<MonocularMeasurement>
+{
+public:
+
+	typedef std::shared_ptr<Monocular_Factor_Base> Ptr;
+	
+	Monocular_Factor_Base( const char* type, const Noise& noise, const MonocularMeasurement& measure )
+		: FactorT<MonocularMeasurement>( type, 2, noise, measure ) {}
+		
+	virtual ~Monocular_Factor_Base() {}
+		
+	virtual Eigen::VectorXd image_error( const Point3d& p, Selector s = ESTIMATE ) const
 	{
-		intrinsics.write( out );
-		return out;
+		Eigen::Matrix<double, 3, 4> P = projectionMatrix( s );
+		MonocularMeasurement predicted = project( P, p );
+		if( predicted.valid )
+		{
+			return predicted.vector() - _measure.vector();
+		}
+		return Eigen::VectorXd::Zero( 2 ); // Nullifies points behind camera
+	}
+		
+	static MonocularMeasurement project( const Eigen::Matrix<double,3,4>& P, Point3d p )
+	{
+		Eigen::Vector4d point( p.x(), p.y(), p.z(), 1.0 );
+		Eigen::Vector3d x;
+		x = P * point;
+		bool valid = x(2) > 0;
+		if( valid )
+		{
+			return MonocularMeasurement( x(0) / x(2), x(1) / x(2), true );
+		}
+		return MonocularMeasurement( 0, 0, false );
 	}
 	
-	class Monocular_Factor_Base : public FactorT<MonocularMeasurement>
-	{
-	public:
+	virtual Eigen::Matrix<double, 3, 4> projectionMatrix( Selector s = ESTIMATE ) const = 0;
+};
+
+/*! \brief Monocular observation of a 3D point. Projective or Euclidean 
+ * geometry depending on constructor used. */
+class Monocular_Factor : public Monocular_Factor_Base 
+{
+	Pose3d_Node* _cam;				// Pose of the camera reference frame
+	Point3d_Node* _point;			// Position of the feature
+	MonocularIntrinsics _intrinsics;	// Intrinsics of the camera
 	
-		typedef std::shared_ptr<Monocular_Factor_Base> Ptr;
-		
-		Monocular_Factor_Base( const char* type, const Noise& noise, const MonocularMeasurement& measure )
-			: FactorT<MonocularMeasurement>( type, 2, noise, measure ) {}
-			
-		virtual ~Monocular_Factor_Base() {}
-			
-		virtual Eigen::VectorXd image_error( const Point3d& p, Selector s = ESTIMATE ) const
-		{
-			Eigen::Matrix<double, 3, 4> P = projectionMatrix( s );
-			MonocularMeasurement predicted = project( P, p );
-			if( predicted.valid )
-			{
-				return predicted.vector() - _measure.vector();
-			}
-			return Eigen::VectorXd::Zero( 2 ); // Nullifies points behind camera
-		}
-			
-		static MonocularMeasurement project( const Eigen::Matrix<double,3,4>& P, Point3d p )
-		{
-			Eigen::Vector4d point( p.x(), p.y(), p.z(), 1.0 );
-			Eigen::Vector3d x;
-			x = P * point;
-			bool valid = x(2) > 0;
-			if( valid )
-			{
-				return MonocularMeasurement( x(0) / x(2), x(1) / x(2), true );
-			}
-			return MonocularMeasurement( 0, 0, false );
-		}
-		
-		virtual Eigen::Matrix<double, 3, 4> projectionMatrix( Selector s = ESTIMATE ) const = 0;
-	};
+public:
 	
-	/*! \brief Monocular observation of a 3D point. Projective or Euclidean 
-	 * geometry depending on constructor used. */
-	class Monocular_Factor : public Monocular_Factor_Base 
+	typedef std::shared_ptr<Monocular_Factor> Ptr;
+	
+	Monocular_Factor( Pose3d_Node* cam, Point3d_Node* point, const MonocularIntrinsics& intrinsics,
+					  const MonocularMeasurement& measure, const isam::Noise& noise )
+		: Monocular_Factor_Base( "Monocular_Factor", noise, measure ),
+		_cam( cam ), _point( point ), _intrinsics( intrinsics ) 
+		{
+		_nodes.resize(2);
+		_nodes[0] = cam;
+		_nodes[1] = point;
+	}
+	
+	void initialize() 
 	{
-		Pose3d_Node* _cam;				// Pose of the camera reference frame
-		Point3d_Node* _point;			// Position of the feature
-		MonocularIntrinsics _intrinsics;	// Intrinsics of the camera
-		
-	public:
-		
-		typedef std::shared_ptr<Monocular_Factor> Ptr;
-		
-		Monocular_Factor( Pose3d_Node* cam, Point3d_Node* point, const MonocularIntrinsics& intrinsics,
-						  const MonocularMeasurement& measure, const isam::Noise& noise )
-			: Monocular_Factor_Base( "Monocular_Factor", noise, measure ),
-			_cam( cam ), _point( point ), _intrinsics( intrinsics ) 
-			{
-			_nodes.resize(2);
-			_nodes[0] = cam;
-			_nodes[1] = point;
-		}
-		
-		void initialize() 
-		{
-			require(_cam->initialized(), "Monocular_Factor requires pose to be initialized.");
-			require( _point->initialized(), "Monocular_Factor requires point to be initialized." );
-		}
-		
-		virtual Eigen::Matrix<double, 3, 4> projectionMatrix( Selector s = ESTIMATE ) const 
-		{
-			const Pose3d& cam = _cam->value(s);
-			Eigen::Matrix<double, 3, 4> P = _intrinsics.K() * cam.oTw() ;
-			return P;
-		}
-		
-		Eigen::VectorXd basic_error( Selector s = ESTIMATE ) const 
-		{
-			Point3d point = _point->value( s );
-			return image_error( point, s );
-		}
-		
-	};
+		require(_cam->initialized(), "Monocular_Factor requires pose to be initialized.");
+		require( _point->initialized(), "Monocular_Factor requires point to be initialized." );
+	}
+	
+	virtual Eigen::Matrix<double, 3, 4> projectionMatrix( Selector s = ESTIMATE ) const 
+	{
+		const Pose3d& cam = _cam->value(s);
+		Eigen::Matrix<double, 3, 4> P = _intrinsics.K() * cam.oTw() ;
+		return P;
+	}
+	
+	Eigen::VectorXd basic_error( Selector s = ESTIMATE ) const 
+	{
+		Point3d point = _point->value( s );
+		return image_error( point, s );
+	}
+	
+};
 	
 }
