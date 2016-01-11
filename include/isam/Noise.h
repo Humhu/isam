@@ -37,7 +37,13 @@ class Noise {
 public:
   Eigen::MatrixXd _sqrtinf;
   const Eigen::MatrixXd& sqrtinf() const {return _sqrtinf;}
-  
+  const Eigen::MatrixXd& info() const { return _sqrtinf.transpose() * _sqrtinf; }
+  const Eigen::MatrixXd& cov() const 
+  { 
+    Eigen::MatrixXd A = _sqrtinf.inverse();
+    return A * A.transpose();
+  }
+
   /*! \brief Return the dimensionality of this noise object. */
   int dim() const { return _sqrtinf.rows(); }
 };

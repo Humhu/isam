@@ -115,6 +115,8 @@ namespace isam {
 		
 		virtual Eigen::VectorXd basic_error(Selector s = ESTIMATE) const = 0;
 		
+		virtual const Noise& noise() const { return _noise; }
+
 		virtual const Eigen::MatrixXd& sqrtinf() const {return _noise.sqrtinf();}
 		
 		Eigen::VectorXd evaluate() const {
