@@ -175,11 +175,12 @@ T posdef_pinv(const T &a, double eps = std::numeric_limits<typename T::Scalar>::
 // Release mode
 // remove requirements in inner loops for speed, but keep standard require functional
 #define requireDebug(req,msg)
-#define require(req,msg) if (!(req)) {fputs(msg, stderr);fputs("\n\n", stderr); exit(1);}
+#define require(req,msg) if (!(req)) {throw std::runtime_error(msg);}
+//#define require(req,msg) if (!(req)) {fputs(msg, stderr);fputs("\n\n", stderr); exit(1);}
 #else
 // Debug mode
 // cause a crash to allow backtracing
-#define requireDebug(req,msg) if (!(req)) {fputs(msg, stderr);fputs("\n\n", stderr); abort();}
+#define requireDebug(req,msg) if (!(req)) {throw std::runtime_error(msg);}
 #define require(req,msg) requireDebug(req,msg)
 #endif
 
