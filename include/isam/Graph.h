@@ -92,42 +92,34 @@ public:
     }
   }
 
-  virtual void print_graph() const {
-    printf("****GRAPH****:\n");
-    printf("**NODES**:\n");
+  virtual void write(std::ostream &out) const {
+    out << "****GRAPH****:" << std::endl;
+    out << "**NODES**:" << std::endl;
     for(std::list<Node*>::const_iterator it = _nodes.begin(); it!=_nodes.end(); it++) {
-      (*it)->write(std::cout);
-      printf("  Factors: ");
+      (*it)->write(out);
+      out << "  Factors: ";
       std::list<Factor*> neighbors = (*it)->factors();
       for(std::list<Factor*>::iterator ite = neighbors.begin(); ite!=neighbors.end(); ite++) {
+        out << (*ite)->unique_id() << " ";
         printf("%i ", (*ite)->unique_id());
       }
-      printf("\n");
+      out << std::endl;
     }
-    printf("**FACTORS**:\n");
+    out << "**FACTORS**:" << std::endl;
     for(std::list<Factor*>::const_iterator it = _factors.begin(); it!=_factors.end(); it++) {
-      std::cout << (**it);
-      printf("  Nodes: ");
+      out << (**it);
+      out << "  Nodes: ";
       std::vector<Node*> neighbors = (*it)->nodes();
       for(std::vector<Node*>::iterator itn = neighbors.begin(); itn!=neighbors.end(); itn++) {
-        printf("%i ", (*itn)->unique_id());
+        out << (*itn)->unique_id() << " ";
       }
-      printf("\n");
+      out << std::endl;
     }
-    printf("****END OF GRAPH****:\n");
+    out << "****END OF GRAPH****:" << std::endl;
   }
 
-  virtual void write(std::ostream &out) const {
-    for(std::list<Factor*>::const_iterator it = _factors.begin(); it!=_factors.end(); it++) {
-      Factor& factor = **it;
-      out << factor;
-      out << "\n";
-    }
-    for(std::list<Node*>::const_iterator it = _nodes.begin(); it!=_nodes.end(); it++) {
-      Node& node = **it;
-      out << node;
-      out << "\n";
-    }
+  virtual void print_graph() const {
+    write(std::cout);
   }
 };
 
