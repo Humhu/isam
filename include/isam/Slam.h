@@ -106,7 +106,7 @@ namespace isam {
 		 * Saves the graph (nodes and factors).
 		 * @param fname Filename with optional path to save graph to.
 		 */
-		void save(const std::string fname) const;
+		void save(const std::string& fname) const;
 		
 		/**
 		 * Adds a node (variable) to the graph.

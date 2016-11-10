@@ -81,9 +81,12 @@ Slam::~Slam()
 {
 }
 
-void Slam::save(const string fname) const {
-  ofstream out(fname.c_str(), ios::out | ios::binary);
-  require(out, "Slam.save: Cannot open output file.");
+void Slam::save(const string& fname) const {
+  ofstream out( fname );
+  if( !out.is_open() )
+  {
+    throw runtime_error( "Slam.save: Could not open file: " + fname );
+  }
   write(out);
   out.close();
 }
