@@ -74,7 +74,7 @@ class MonocularIntrinsics
 public:
 	EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
-	static const int dim = 2;
+	static const int dim = 4;
 	static const char* name();
 	
 	typedef std::shared_ptr<MonocularIntrinsics> Ptr;
