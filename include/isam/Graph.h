@@ -101,7 +101,7 @@ public:
       std::list<Factor*> neighbors = (*it)->factors();
       for(std::list<Factor*>::iterator ite = neighbors.begin(); ite!=neighbors.end(); ite++) {
         out << (*ite)->unique_id() << " ";
-        printf("%i ", (*ite)->unique_id());
+        // printf("%i ", (*ite)->unique_id());
       }
       out << std::endl;
     }
