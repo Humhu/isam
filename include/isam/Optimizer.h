@@ -115,7 +115,7 @@ private:
    * @param jacobian  The SparseSystem representing the linearization
    * @param R
    * @param lambda
-   * @return h_gn
+   * @return h_gn Step if succeeds, empty VectorXd if fails
    */
   Eigen::VectorXd compute_gauss_newton_step(const SparseSystem& jacobian,
       SparseSystem* R = NULL, double lambda = 0.);

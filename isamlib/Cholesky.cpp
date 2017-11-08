@@ -65,7 +65,7 @@ public:
     cholmod_finish(&Common);
   }
 
-  void factorize(const SparseSystem& Ab, VectorXd* delta = NULL, double lambda = 0) {
+  bool factorize(const SparseSystem& Ab, VectorXd* delta = NULL, double lambda = 0) {
     tic("Cholesky");
 
     reset(); // make sure _L, _rhs, _order are empty
@@ -83,6 +83,7 @@ public:
     Common.method[0].ordering = CHOLMOD_AMD; //CHOLMOD_NATURAL; //CHOLMOD_COLAMD;
     Common.postorder = false;
 #endif
+    int cholRet;
     if (lambda>0) { // for Levenberg-Marquardt
       cholmod_sparse* A = cholmod_transpose(At, 1, &Common);
       // make symmetric matrix (only upper part saved)
@@ -97,16 +98,32 @@ public:
       }
       L_factor = cholmod_analyze(AtA, &Common);
       tic("cholmod_factorize");
-      cholmod_factorize(AtA, L_factor, &Common);
+      cholRet = cholmod_factorize(AtA, L_factor, &Common);
       toc("cholmod_factorize");
       cholmod_free_sparse(&AtA, &Common);
       cholmod_free_sparse(&A, &Common);
     } else {
       L_factor = cholmod_analyze(At, &Common);
       tic("cholmod_factorize");
-      cholmod_factorize(At, L_factor, &Common);
+      cholRet = cholmod_factorize(At, L_factor, &Common);
       toc("cholmod_factorize");
     }
+
+    if( cholRet == CHOLMOD_NOT_POSDEF )
+    {
+      std::cerr << "Non positive-definite information matrix" << std::endl;
+    }
+    else if( cholRet == CHOLMOD_DSMALL )
+    {
+      std::cerr << "Poorly conditioned information matrix" << std::endl;
+    }
+    else if( cholRet < 0 )
+    {
+      std::cerr << "Fatal CHOLMOD error!" << std::endl;
+    }
+
+    if( cholRet != 0 ) { return false; }
+
     // make sure factorization is in correct format (LL, simplicial, packed, ordered)
     cholmod_change_factor(CHOLMOD_REAL, true, false, true, true, L_factor, &Common);
 
@@ -144,6 +161,7 @@ public:
     cholmod_free_sparse(&At, &Common);
 
     toc("Cholesky");
+    return true;
   }
 
   void get_R(SparseSystem& R) {
@@ -268,7 +286,7 @@ public:
     return p;
   }
 
-  void factorize(const SparseSystem& Ab, VectorXd* delta = NULL, double lambda = 0) {
+  bool factorize(const SparseSystem& Ab, VectorXd* delta = NULL, double lambda = 0) {
     tic("Cholesky");
 
     reset(); // make sure _L, _rhs, _order are empty
@@ -326,6 +344,9 @@ public:
     cs_sfree(S);
     cs_nfree(N);
     delete[] Atb;
+
+    // TODO It doesn't seem like CSparse returns any error codes when the matrix is not PD?!
+    return true;
   }
 
   void get_R(SparseSystem& R) {

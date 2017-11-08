@@ -49,7 +49,9 @@ void Optimizer::permute_vector(const VectorXd& v, VectorXd& p,
 VectorXd Optimizer::compute_gauss_newton_step(const SparseSystem& jacobian,
     SparseSystem* R, double lambda) {
   VectorXd delta_ordered;
-  _cholesky->factorize(jacobian, &delta_ordered, lambda);
+  bool succ = _cholesky->factorize(jacobian, &delta_ordered, lambda);
+  if( !succ ) { return VectorXd(); }
+
   if (R != NULL) {
     _cholesky->get_R(*R);
   }
@@ -116,6 +118,11 @@ void Optimizer::relinearize(const Properties& prop) {
 
   // factorization and new rhs based on new linearization point will be in _R
   VectorXd h_gn = compute_gauss_newton_step(jac, &function_system._R); // modifies _R
+  if( h_gn.size() == 0 ) 
+  { 
+    std::cerr << "Could not relinearize!" << std::endl;
+    return;
+  }
 
   if (prop.method == DOG_LEG) {
     // Compute the gradient and cache it.
@@ -306,6 +313,11 @@ void Optimizer::gauss_newton(const Properties& prop, int* num_iterations) {
 
   // Compute Gauss-Newton step h_{gn} to get to the next estimated optimizing point.
   VectorXd delta = compute_gauss_newton_step(jacobian);
+  if( delta.size() == 0 )
+  {
+    std::cerr << "Could not compute GN step. Bailing optimization!" << std::endl;
+    return;
+  }
 
   while (
   // We ALWAYS use these criteria
@@ -347,6 +359,11 @@ void Optimizer::gauss_newton(const Properties& prop, int* num_iterations) {
     // Compute Gauss-Newton step h_{gn} to get to the next estimated
     // optimizing point.
     delta = compute_gauss_newton_step(jacobian);
+    if( delta.size() == 0 )
+    {
+      std::cerr << "Could not compute GN step. Bailing!" << std::endl;
+      return;
+    }
     if (!prop.quiet) {
       cout << "Iteration " << num_iter << ": residual ";
 
@@ -391,6 +408,11 @@ void Optimizer::levenberg_marquardt(const Properties& prop,
   // solve at J'J + lambda*diag(J'J)
   VectorXd delta = compute_gauss_newton_step(jacobian, &function_system._R,
       lambda);
+  if( delta.size() == 0 )
+  {
+    std::cerr << "Could not compute GN step in LM! Bailing!" << std::endl;
+    return;
+  }
 
   while (
   // We ALWAYS use these stopping criteria
@@ -453,6 +475,11 @@ void Optimizer::levenberg_marquardt(const Properties& prop,
 
     // Compute the step for the next iteration.
     delta = compute_gauss_newton_step(jacobian, &function_system._R, lambda);
+    if( delta.size() == 0 )
+    {
+      std::cerr << "Could not compute GN step in LM! Bailing!" << std::endl;
+      return;
+    }
 
   } // end while
 
@@ -489,6 +516,12 @@ void Optimizer::powells_dog_leg(int* num_iterations, double delta0,
     VectorXd h_sd = -grad;
     // solve Gauss Newton
     VectorXd h_gn = compute_gauss_newton_step(jacobian, &function_system._R);
+    if( h_gn.size() == 0 )
+    {
+      std::cerr << "Could not compute GN step in PDL! Bailing!" << std::endl;
+      return;
+    }
+
     // compute dog leg h_dl
     // x0 = x: remember (and return) linearization point of R
     function_system.linpoint_to_estimate();

@@ -43,8 +43,9 @@ public:
    * @param delta Optional parameter to return solution of system.
    * @param lambda Adds elements to diagonal of information matrix A'A before
    *        factorization, used for Levenberg-Marquardt algorithm.
+   * @return Returns success
    */
-  virtual void factorize(const SparseSystem& Ab, Eigen::VectorXd* delta = NULL, double lambda = 0.) = 0;
+  virtual bool factorize(const SparseSystem& Ab, Eigen::VectorXd* delta = NULL, double lambda = 0.) = 0;
 
   /**
    * Copy R into a SparseSystem data structure (expensive, so can be
