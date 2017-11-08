@@ -109,20 +109,20 @@ public:
       toc("cholmod_factorize");
     }
 
-    if( cholRet == CHOLMOD_NOT_POSDEF )
+    if( Common.status == CHOLMOD_NOT_POSDEF )
     {
       std::cerr << "Non positive-definite information matrix" << std::endl;
     }
-    else if( cholRet == CHOLMOD_DSMALL )
+    else if( Common.status == CHOLMOD_DSMALL )
     {
       std::cerr << "Poorly conditioned information matrix" << std::endl;
     }
-    else if( cholRet < 0 )
+    else if( Common.status < 0 )
     {
       std::cerr << "Fatal CHOLMOD error!" << std::endl;
     }
 
-    if( cholRet != 0 ) { return false; }
+    if( !cholRet || Common.status != 0 ) { return false; }
 
     // make sure factorization is in correct format (LL, simplicial, packed, ordered)
     cholmod_change_factor(CHOLMOD_REAL, true, false, true, true, L_factor, &Common);
